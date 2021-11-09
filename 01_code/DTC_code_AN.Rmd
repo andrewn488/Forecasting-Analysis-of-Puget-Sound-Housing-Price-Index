@@ -1,0 +1,142 @@
+---
+title: "Forecasting DTC"
+author: "Andrew Nalundasan"
+date: "11/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+# load libraries
+library(tidyverse)
+library(vtable)
+library(jtools)
+library(haven)
+library(tidylog)
+options(scipen=999)
+```
+
+
+```{r}
+# read in data
+data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
+
+# look at the data
+head(data, 10)
+```
+
+
+```{r}
+# filter for target GEO
+puget <- data %>% 
+  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+
+puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
+
+puget <- puget[, c('YearMonth', 'Index_NSA')]
+
+# declare as TS
+puget_ts <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
+```
+
+
+```{r}
+# plot TS
+plot(puget_ts, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+
+# plot histogram
+hist(puget_ts)
+```
+
+**Comments**
+
++ Need to take difference to achieve stationarity
+
+```{r}
+
+# log difference of puget
+ld_puget <- diff(log(puget_ts))
+
+plot(ld_puget, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_NSA trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+
+# create linear regression for time series data
+# model1 <- dynlm(dp ~ lag(dp, -1) + lag(dr, -1))
+```
+
+**Comments**
+
++ After taking the log difference from the TS, does this yield a stationary trend?
++ What does this tell us?
+
+```{r Plot ACF}
+# auto correlation function
+# 20 lags
+acf(puget_ts, lag.max = 20, main='Puget TS - ACF')
+
+# see values only and no plot
+acf(puget_ts, lag.max = 20, plot = FALSE)
+```
+
+**Comments**
+
++ How many lags should we be running?
++ Arbitrarily chose 20 lags
++ Plot never falls below statistically significant threshold in 20 lags
+
+    + PACF will likely fall below threshold before ACF
+
+```{r Plot PACF}
+# PACF
+pacf(puget_ts, lag.max = 20, main='Puget TS - PACF')
+
+# values only
+pacf(puget_ts, lag.max = 20, plot = FALSE)
+```
+
+**Comments**
+
++ PACF falls below statistically significant threshold at lag 2
+
+    + This indicates that we are working with an Auto Regressive (AR) process
+
+**Questions**
++ How many lags should we be running?
++ Arbitrarily chose 20 lags
++ Does this indicate an ARIMA or ARMA model moving forward?
++ How do we determine what order of AR we are working with?
+
+    + Perhaps once we determine a model?
+
+
+```{r}
+# log difference of ACF and PACF
+# log difference ACF
+acf(ld_puget, lag.max = 20, main = 'log diff Puget Sound Index_NSA - ACF')
+
+```
+
+**Comments**
+
++ Coefficients don't drop below significance level until lag 17 onward
++ Need to plot PACF logged difference 
+
+```{r}
+# log difference PACF
+pacf(ld_puget, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
+```
+
+**Comments**
+
++ Oscillating coefficients indicate a negative number somewhere in the model or something like that
++ PACF drops below significance threshold at lag 6
+    
+    + Logged difference PACF indicates an AR process as well
+    
+**Questions** 
+
++ These tests are just visual tests. How do we determine AR vs. MA process computationally?
+
+
