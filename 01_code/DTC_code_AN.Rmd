@@ -19,6 +19,7 @@ library(tidylog)
 options(scipen=999)
 ```
 
+## Read in data and wrangle
 
 ```{r}
 # read in data
@@ -42,6 +43,7 @@ puget <- puget[, c('YearMonth', 'Index_NSA')]
 puget_ts <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
 ```
 
+## Research Question 1: Forecasting from 2011-present
 
 ```{r}
 # plot TS
@@ -139,4 +141,10 @@ pacf(ld_puget, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
 
 + These tests are just visual tests. How do we determine AR vs. MA process computationally?
 
+
+## Research Question 2: Forecasting from 2011-2019 (pre-pandemic)
+
+
+
+## Research Question 3: Forecasting from 2020-2021 (post-pandemic)
 
