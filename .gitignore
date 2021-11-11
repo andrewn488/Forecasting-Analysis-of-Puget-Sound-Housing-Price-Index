@@ -38,6 +38,5 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# CSVs and stuff
-.csv
 *.csv
+*.html
