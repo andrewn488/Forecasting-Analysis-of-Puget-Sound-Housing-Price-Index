@@ -83,6 +83,9 @@ plot(ld_puget_q1, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference In
 **Comments**
 
 + After taking the log difference from the TS, does this yield a stationary trend?
+
+    + This looks stationary but need to verify
+    
 + What does this tell us?
 
 ```{r Plot ACF}
@@ -117,8 +120,11 @@ pacf(puget_q1, lag.max = 20, plot = FALSE)
     + This indicates that we are working with an Auto Regressive (AR) process
 
 **Questions**
+
 + How many lags should we be running?
-+ Arbitrarily chose 20 lags
+    
+    + Arbitrarily chose 20 lags
+    
 + Does this indicate an ARIMA or ARMA model moving forward?
 + How do we determine what order of AR we are working with?
 
@@ -149,6 +155,8 @@ pacf(ld_puget_q1, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
 + PACF drops below significance threshold at lag 5
     
     + Logged difference PACF indicates an AR process as well
+    + Is this enough evidence to confirm AR process?
+    + How can we verify via calculations?
     
 **Questions** 
 
