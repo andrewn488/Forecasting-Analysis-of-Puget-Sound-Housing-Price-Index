@@ -17,10 +17,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r libraries, include=FALSE}
 # load libraries
 library(tidyverse)
-library(vtable)
+library(ggplot2)
 library(jtools)
 library(haven)
 library(tidylog)
+library(forecast)
+library(tseries)
 options(scipen=999)
 ```
 
@@ -161,6 +163,224 @@ pacf(ld_puget_q1, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
 **Questions** 
 
 + These tests are just visual tests. How do we determine AR vs. MA process computationally?
+
+## Following ARIMA fitting guide using ggplot
+
+### Examine Data
+```{r}
+# plot using ggplot just for fun
+ggplot(puget, aes(YearMonth, Index_NSA)) + 
+  geom_line() + scale_x_date('Year') + 
+  labs(y = "Non-Seasonally Adjusted Index",
+       title = "Seattle, Tacoma, Bellevue",
+       subtitle = "Non-Seasonally Adjusted index trends") +
+  theme_classic()
+```
+
+**Comments**
+
++ ggplot plot looks exactly the same as using Base R but with more flexibility to add components
++ ggplot needs a DF rather than a TS to create plot
+
+```{r}
+
+# try cleaning the data
+puget_ts <- ts(puget[, c('Index_NSA')])
+puget$clean_index_nsa <- tsclean(puget_ts)
+
+ggplot() + 
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_nsa)) + ylab('Cleaned Index NSA')
+```
+
+**Comments**
+
++ cleaning the data using tsclean() does not have an effect on our dataset
++ no outliers to clean
+
+```{r}
+# plot the cleaned series
+# get MA(4) - quarterly MA
+puget$nsa_ma04 = ma(puget$clean_index_nsa, order=4) # using the clean count with no outliers, get the MA
+
+# get MA(12) - yearly MA
+puget$nsa_ma12 = ma(puget$clean_index_nsa, order=12) # MA(12)
+
+ggplot() + 
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_nsa, colour = "Raw Data")) +
+  geom_line(data = puget, aes(x = YearMonth, y = nsa_ma04,   colour = "Quarterly Moving Average"))  +
+  geom_line(data = puget, aes(x = YearMonth, y = nsa_ma12, colour = "Yearly Moving Average"))  +
+  labs(x = "Year", 
+       y = "NSA Index",
+       title = "Monthly MA vs. Weekly MA") + 
+  theme_classic()
+```
+
+**Comments**
+
++ yearly MA appears to be a slightly smoother fit to our raw data plot
++ quarterly MA follows along almost spot on
+
+### Decompose Data
+
++ Seasonality, Trend, Cycle to capture historical patterns in the series
++ Seasonality - fluctuations in the data related to calendar cycles
++ Trend - overall pattern of the series
++ Cycle - decreasing or increasing patterns that are not seasonal
+
+```{r}
+# Seasonality
+nsa_ma <- ts(puget$Index_NSA, frequency=12)
+
+decomp <- stl(nsa_ma, s.window="periodic")  # additive model structure
+deseasonal_nsa <- seasadj(decomp)  # remove seasonality
+plot(decomp)
+
+```
+
+**Comments**
+
++ Not sure what this is telling us
++ why is time not in my time window?
++ definitely trending upwards
+
+### Stationarity
+
+```{r}
+# run ADF test
+adf.test(nsa_ma, alternative = "stationary")
+```
+
+**Comments**
+
++ dickey-fuller test indicates a very high p-value
++ do these results indicate a stationary process?
+
+### Autocorrelations and Choosing Model Order
+
+```{r}
+# plot ACF
+Acf(nsa_ma, main='ACF')
+
+# plot PACF
+Pacf(nsa_ma, main='PACF')
+```
+
+```{r}
+# calculate differences
+count_d1 = diff(deseasonal_nsa, differences = 1)
+plot(count_d1)
+adf.test(count_d1, alternative = "stationary")
+```
+
+
+**Comments**
+
++ dickey-fuller test indicates a high p-value
++ do these results indicate a stationary process?
+
+
+```{r}
+# plot differenced ACF 
+Acf(count_d1, main='ACF for Differenced Series')
+
+# difference PACF
+Pacf(count_d1, main='PACF for Differenced Series')
+```
+
+**Comments**
+
++ ACF:
+
+    + spikes do not pass significance threshold until lag 11
+    + distribution appears to be sinusoidal
+    
++ PACF:
+
+    + spike passes significance threshold at lag 4
+    + distribution is somewhat oscilating
+
+### Fitting an ARIMA model
+
+```{r}
+# Fit the ARIMA model
+auto.arima(deseasonal_nsa, seasonal=FALSE)
+```
+
+**Comments**
+
++ p = 0
++ d = 2
++ q = 3
++ ARIMA Fitted Model
+    
+    + y_hat = 0.7689e_t-1 -0.2475e_t-2 - 0.4647e_t-3 + E
+    
+
+### Evaluate and Iterate
+
+```{r}
+# get a fit
+fit <- auto.arima(deseasonal_nsa, seasonal=FALSE)
+
+# plot the data
+tsdisplay(residuals(fit), lag.max=45, main='(0,2,3) Model Residuals')
+```
+
+**Comments**
+
++ do we see any patterns here that would yield a better ARIMA model?
++ Should lag.max be 45?
++ do these residuals look like white noise?
+
+    + residuals seem to be under control until around lag 9, then they grow larger
+    
+```{r}
+# iterate our model using a different fit
+fit2 = arima(deseasonal_nsa, order=c(1,1,1))
+fit2
+tsdisplay(residuals(fit2), lag.max=15, main='Seasonal Model Residuals')
+```
+
+**Comments**
+
++ how can we tell if fit2 is any better than our original?
+
+```{r}
+# try a forecast
+fcast <- forecast(fit2, h=10)  # set horizon periods to 10. Does this indicate 10 years ahead?
+plot(fcast, ylab = "Index_NSA")
+```
+
+**Comments**
+
++ does setting h=10 indicate a horizon of 10 periods, aka 10 years ahead?
+
+```{r}
+# forecast model future performance
+hold <- window(ts(deseasonal_nsa))  # should start be used here?
+fit_no_holdout = arima(ts(deseasonal_nsa))  # should order be specified here?
+fcast_no_holdout <- forecast(fit_no_holdout, h=25)
+plot(fcast_no_holdout, main="Forecast of performance for future model")
+lines(ts(deseasonal_nsa))
+
+```
+
+**Comments**
+
++ not sure if this is correct at all
+
+```{r}
+# add seasonality back into our model
+fit_w_seasonality = auto.arima(deseasonal_nsa, seasonal=TRUE)
+fit_w_seasonality
+```
+
+**Comments**
+
++ This yields an ARIMA(0, 2, 3) process
++ AIC = 171.79
++ BIC = 182.84
++ Are AIC and BIC low enough to be effective?
 
 
 # Research Question 2: Forecasting from 2011-2019 (pre-pandemic)
