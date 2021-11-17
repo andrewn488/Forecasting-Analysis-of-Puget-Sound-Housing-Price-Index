@@ -44,11 +44,16 @@ puget <- data %>%
 
 puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
 
-puget <- puget[, c('YearMonth', 'Index_NSA')] %>% 
+puget_nsa <- puget[, c('YearMonth', 'Index_NSA')] %>% 
+  filter(YearMonth >= '2011-01-01')
+
+puget_sa <- puget[, c('YearMonth', 'Index_SA')] %>% 
   filter(YearMonth >= '2011-01-01')
 
 # declare as TS
-puget_q1 <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
+puget_nsa_ts <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
+
+puget_sa_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
 ```
 
 + Data wrangling: 
@@ -61,10 +66,13 @@ puget_q1 <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
 
 ```{r}
 # plot TS
-plot(puget_q1, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+plot(puget_nsa, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+
+plot(puget_sa, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Seasonally Adjusted Index', xlab='Year')
 
 # plot histogram
-hist(puget_q1)
+hist(puget_nsa_ts)
+hist(puget_sa_ts)
 ```
 
 **Comments**
@@ -74,9 +82,13 @@ hist(puget_q1)
 ```{r}
 
 # log difference of puget
-ld_puget_q1 <- diff(log(puget_q1))
+ld_puget_nsa <- diff(log(puget_nsa_ts))
+ld_puget_sa <- diff(log(puget_sa_ts))
 
-plot(ld_puget_q1, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_NSA trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+# plot the logged difference datasets
+plot(ld_puget_nsa, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_NSA trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
+
+plot(ld_puget_sa, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
 
 # create linear regression for time series data
 # model1 <- dynlm(dp ~ lag(dp, -1) + lag(dr, -1))
@@ -93,10 +105,12 @@ plot(ld_puget_q1, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference In
 ```{r Plot ACF}
 # auto correlation function
 # 20 lags
-acf(puget_q1, lag.max = 20, main='Puget TS - ACF')
+acf(puget_nsa_ts, lag.max = 20, main='Puget NSA TS - ACF')
+acf(puget_sa_ts, lag.max = 20, main='Puget SA TS - ACF')
 
 # see values only and no plot
-acf(puget_q1, lag.max = 20, plot = FALSE)
+acf(puget_nsa_ts, lag.max = 20, plot = FALSE)
+acf(puget_sa_ts, lag.max = 20, plot = FALSE)
 ```
 
 **Comments**
@@ -109,10 +123,12 @@ acf(puget_q1, lag.max = 20, plot = FALSE)
 
 ```{r Plot PACF}
 # PACF
-pacf(puget_q1, lag.max = 20, main='Puget TS - PACF')
+pacf(puget_nsa_ts, lag.max = 20, main='Puget NSA TS - PACF')
+pacf(puget_sa_ts, lag.max = 20, main='Puget SA TS - PACF')
 
 # values only
-pacf(puget_q1, lag.max = 20, plot = FALSE)
+pacf(puget_nsa_ts, lag.max = 20, plot = FALSE)
+pacf(puget_sa_ts, lag.max = 20, plot = FALSE)
 ```
 
 **Comments**
@@ -136,7 +152,8 @@ pacf(puget_q1, lag.max = 20, plot = FALSE)
 ```{r}
 # log difference of ACF and PACF
 # log difference ACF
-acf(ld_puget_q1, lag.max = 20, main = 'log diff Puget Sound Index_NSA - ACF')
+acf(ld_puget_nsa, lag.max = 20, main = 'log diff Puget Sound Index_NSA - ACF')
+acf(ld_puget_sa, lag.max = 20, main = 'log diff Puget Sound Index_SA - ACF')
 
 ```
 
@@ -148,7 +165,8 @@ acf(ld_puget_q1, lag.max = 20, main = 'log diff Puget Sound Index_NSA - ACF')
 
 ```{r}
 # log difference PACF
-pacf(ld_puget_q1, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
+pacf(ld_puget_nsa, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
+pacf(ld_puget_sa, lag.max = 20, main = 'log diff Puget Sound Index_SA - PACF')
 ```
 
 **Comments**
