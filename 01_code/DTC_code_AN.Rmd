@@ -28,7 +28,7 @@ options(scipen=999)
 
 +Forecasting Housing Prices
 
-Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale.
+Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. We specifically wanted to investigate how house proces have changed in the last decade and compare pre-pandemic to post-pandemic price changes.
 
 +Data Description
 
