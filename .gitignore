@@ -40,3 +40,7 @@ vignettes/*.pdf
 
 *.csv
 *.html
+
+# Mac Specific Ignore
+*.DS_Store
+
