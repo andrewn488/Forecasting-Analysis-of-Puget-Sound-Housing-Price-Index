@@ -17,6 +17,9 @@ head(df)
 ggplot(data = puget) +
   geom_line(mapping = aes(x = YearMonth, y = Index_NSA, group = GEO_Name))
 
+ggsave("NSA-graph.png")
+
+
 acf(puget[, c('YearMonth', 'Index_NSA')], lag.max=20)
 pacf(puget[, c('YearMonth', 'Index_NSA')], lag.max=20)
 
@@ -28,3 +31,4 @@ ggplot(data = PandemicPricing) +
 
 acf(PandemicPricing[, c('YearMonth', 'Index_NSA')], lag.max=18)
 pacf(PandemicPricing[, c('YearMonth', 'Index_NSA')], lag.max=18)
+
