@@ -1,5 +1,6 @@
 library(haven)
 library(tidyverse)
+library(forecast)
 
 housing <- read_csv("fmhpi_master_file.csv")
 
@@ -28,3 +29,34 @@ ggplot(data = PandemicPricing) +
 
 acf(PandemicPricing[, c('YearMonth', 'Index_NSA')], lag.max=18)
 pacf(PandemicPricing[, c('YearMonth', 'Index_NSA')], lag.max=18)
+
+PandemicPricing <- puget %>%
+  filter(YearMonth >= '2020-1-1')
+puget_post <- ts(PandemicPricing$Index_NSA, frequency=12, start=2020)  # monthly data)
+
+plot(puget_post)
+hist(puget_post)
+
+# shows non-stationary time series; need to convert to diff
+
+ld_puget_post <- diff(log(puget_post))
+plot(ld_puget_post)
+
+# seems to also suggest a non-stationary time series... need to figure out another
+# transformation possibly?
+
+acf(puget_post, lag.max=20, main='Puget Pandemic')
+pacf(puget_post, lag.max=20, main='Puget Pandemic')
+
+acf(ld_puget_post, lag.max=20, main = 'Log Diff Puget Pandemic')
+pacf(ld_puget_post, lag.max=20, main = 'Log Diff Puget Pandemic')
+
+pacf.plot <- pacf(puget_post)
+
+model_ar1 <- arima(puget_post, order = c(1,0,0))
+model_ar1
+model_best <- auto.arima(ld_puget_post)
+arima.model_1
+
+model_ldma1 <- arima(ld_puget_post, order = c(2,0,0))
+model_ldma1
