@@ -1,0 +1,95 @@
+---
+title: "TA"
+output: html_notebook
+---
+
+
+
+```{r}
+# Library Load
+library(tidyverse)
+library(dynlm)
+library(forecast)
+library(vtable)
+library (lubridate)
+library(scales)
+library(patchwork)
+```
+
+```{r}
+
+# loads csv into a base data frame
+base_housing_data <- read_csv("fmhpi_master_file.csv")
+
+# the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
+
+base_puget_precovid_data <- filter(base_housing_data, GEO_Name == 
+                            'Seattle-Tacoma-Bellevue WA') %>% 
+                            filter(Year <= 2019)
+
+# Creates a new YearMonth date variable as a date class (day is set to 01)
+
+base_puget_precovid_data$YearMonth <- as.Date(with(base_puget_precovid_data,paste(Year, Month, 1, sep="-")),"%Y-%m-%d") 
+  
+# Narrows the number of variables by removing the Code variables and then reorders the variables. The not seasonally adjust variable was removed per the Professor's guidance 11/18/21)
+wip_puget_precovid_data <- base_puget_precovid_data %>% 
+  select(YearMonth, Year, Month, Index_SA)
+```
+
+```{r}
+# The following code plots the data to determine stationarity 
+
+#Converts the data to 2 time series
+index_sa_ts <- ts(wip_puget_precovid_data$Index_SA, frequency = 12, start = c(1975))
+
+# The following plots the not seasonally adjusted (nsa) index then assesses the acf and pacf.
+plot(index_sa_ts, main = 'Pre-Covid Freddie Mac Seasonally 
+     Adjusted Housing Price Index from 2011 - 2019 ', ylab = 'Housing Index', xlab = 'Year')
+
+acf(index_sa_ts)
+pacf(index_sa_ts)
+
+# The sa index for the pre-covid period is not stationary, showing the same behavior as the nsa index.  Of note, the seasonality in the nsa plot is captured by a small repeating wave along the plot that is not seen in the sa plot.
+
+```
+## Observation(s):
+1. The plots shows that the indexes are not stationary. The following section will make the plots covariance stationary.
+
+```{r}
+
+# The following code log diff's the na index to make them stationary.
+log_diff_sa_ts <- diff(log(index_sa_ts))
+
+mean(log_diff_sa_ts)
+# mean ==  0.0053
+
+sd(log_diff_sa_ts)
+# sd == 0.0077
+
+hist(log_diff_sa_ts)
+
+# normally distributed
+
+ts.plot(log_diff_sa_ts)
+abline(h = '.0053')
+
+```
+
+## Observation(s): 
+1. The log diff time series values are normally distributed with a mean of .0053 and a standard deviation of .0077.  
+The seasonally adjusted (sa) index shows a high persistence below the mean from 2008 - 2010, corresponding with the Great Recession, and then a persistence above the mean from 2011 to 2019.
+
+```{r}
+# The following builds the acf and pacf plots for the stationary time series plots.
+acf(log_diff_sa_ts)
+pacf(log_diff_sa_ts, lag.max = 50)
+
+```
+## Observation(s):
+1. The acf has a geometrically decaying collation indicative of a AR model. 
+2. The pacf has a significant drop off at lag 3.  
+3. There is a group of significant spikes between 1.0 and 1.5. Might consider a AR(3) model or an extreme model of AR(16).  The AR(16) will most likely be a case of over fitting.  
+
+```{r}
+```
+
