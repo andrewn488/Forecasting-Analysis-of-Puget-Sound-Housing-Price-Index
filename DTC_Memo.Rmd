@@ -1,7 +1,10 @@
 ---
 title: "DTC - Forecasting Home Price Index"
-author: "Eric Beekman, Jonathan Burns, Glen Lewis, and Andrew Nalundasan"
-output: html_document
+author: "Eric Beekman, Jonathan Burns, Vishaal Diwan, Glen Lewis, and Andrew Nalundasan"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
