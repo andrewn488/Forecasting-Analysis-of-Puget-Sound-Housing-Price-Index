@@ -1,6 +1,6 @@
 ---
 title: "Forecasting DTC"
-author: "Glen Lewis, Jonathan Burns, Eric Beekman, Andrew Nalundasan"
+author: "Glen Lewis, Jonathan Burns, Eric Beekman, Vishaal Diwan, Andrew Nalundasan"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: 
   html_document:
@@ -26,11 +26,11 @@ library(tseries)
 options(scipen=999)
 ```
 
-+Forecasting Housing Prices
++ Forecasting Housing Prices
 
 Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. We specifically wanted to investigate how house proces have changed in the last decade and compare pre-pandemic to post-pandemic price changes.
 
-+Data Description
++ Data Description
 
 We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddiemac.com/research/indices/house-price-index.page.
 
@@ -42,7 +42,7 @@ For our forecasting analysis we split the data into 3 sections based on the chan
 
 ![](NSA-graph.png){width=500px height=500px}
 
-# Read in data and wrangle
+# Read in data and wrangle (OLD, prior to meeting with Prof 11/18/2021)
 
 ```{r}
 # read in data
@@ -78,7 +78,7 @@ puget_sa_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
     + create new column for 'YearMonth' concatenating to be %Y-%m-%d format
     + filter dataset to be dates from 2011-present for research question 1
 
-# Research Question 1: Forecasting from 2011-present
+# Research Question 1: Forecasting from 2011-present (OLD, prior to meeting with Prof 11/18/2021)
 
 ```{r}
 # plot TS
@@ -417,9 +417,185 @@ fit_w_seasonality
 + Are AIC and BIC low enough to be effective?
 
 
-# Research Question 2: Forecasting from 2011-2019 (pre-pandemic)
 
 
 
-# Research Question 3: Forecasting from 2020-2021 (post-pandemic)
+
+# Fetch Data
+
+## Read in data and wrangle
+
+```{r fetch_data}
+# read in data
+data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
+
+# filter for target GEO
+puget <- data %>% 
+  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+
+# add YearMonth column
+puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
+
+# pull columns from dataset we need for forecasting
+puget <- puget[, c('YearMonth', 'Index_SA')]
+
+# look at our data
+head(puget, 10)
+
+# declare as ts
+puget_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
+```
+
+```{r}
+# estimation and prediction ts
+# estimation set
+est_sa <- puget %>% 
+  filter(YearMonth < '2020-01-01')
+
+# estimation ts
+est_sa_ts <- ts(est_sa$Index_SA, frequency=12, start=1975)  # monthly data
+
+# prediction set
+pred_sa <- puget %>% 
+  filter(YearMonth >= '2020-01-01')
+
+# prediction ts
+pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
+
+```
+
+```{r}
+# logged differences
+
+# log difference of estimation and prediction timeseries
+ld_est <- diff(log(est_sa_ts))
+ld_pred <- diff(log(pred_sa_ts))
+```
+
+
+```{r}
+# plot all time series data
+plot(est_sa_ts, col='blue', main='Estimation SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(pred_sa_ts, col='blue', main='Prediction SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_est, col='blue', main='Estimation Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_pred, col='blue', main='Prediction Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+```
+
+
+```{r}
+# plot all time series data - ACF
+acf(est_sa_ts, lag.max = 20, main='Estimation Set - ACF')
+acf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(pred_sa_ts, lag.max = 20, main='Prediction Set - ACF')
+acf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(ld_est, lag.max = 20, main='Estimation Log Difference Set - ACF')
+acf(ld_est, lag.max = 20, plot = FALSE)
+
+acf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - ACF')
+acf(ld_pred, lag.max = 20, plot = FALSE)
+```
+
+
+```{r}
+# plot all time series data - PACF
+pacf(est_sa_ts, lag.max = 20, main='Estimation Set - PACF')
+pacf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(pred_sa_ts, lag.max = 20, main='Prediction Set - PACF')
+pacf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(ld_est, lag.max = 20, main='Estimation Log Difference Set - PACF')
+pacf(ld_est, lag.max = 20, plot = FALSE)
+
+pacf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - PACF')
+pacf(ld_pred, lag.max = 20, plot = FALSE)
+```
+
+
+
+# Apply Schemes
+
+## Set up model
+```{r}
+# puget_ts is our time series data
+# set lag to stats::lag since it is overridden by dplyr::lag
+lag <- stats::lag
+
+# g from notes <- puget_ts
+# puget_ts <- ts(puget$'Index_SA', frequency = 12, start = c(1975-01-01))
+
+```
+
+## Fixed Scheme
+
+```{r}
+
+# generate a vector of 20 zero's
+fcast1 <- numeric(20) 
+
+# fit AR(3) - this runs the estimation and gives us the coefficients
+fixed_model <- dynlm(puget_ts ~ lag(puget_ts, -1) + lag(puget_ts, -3), start = c(1975-01-01), end = c(2021-09-01))
+
+# start a for-loop
+# fill in forecasted values at the end of each iteration
+for (i in 1:20){
+  # use coef() to pull out the coefficient
+  fcast1[i] <- coef(fixed_model)[1] + coef(fixed_model)[2] * puget_ts[540 + i] + coef(fixed_model)[3] * puget_ts[537 + i]
+} # close the for-loop
+
+# why use puget_ts[111 + i] and puget_ts[109 + i]?? substituted 540 and 537 as a guess
+```
+
+## Recursive Scheme
+
+```{r}
+# generate a vector of 20 zero's
+fcast2 <- numeric(20) 
+
+# loop the model in as did with Fixed Scheme
+
+for (i in 1:20){
+  # fit AR(3), note that "end" depends on i
+  # 2 explanatory variables: lag(-1) and lag(3) 
+  recursive_model <- dynlm(puget_ts ~ lag(puget_ts, -1) + lag(puget_ts, 3), start = c(1975-01-01 + i), end = c(2021-09-01 + i))
+  # fill in forecasted values at the end of each iteration
+  # estimation sample has an expanding window, so the sample in each window outputs different coefficients
+  fcast2[i] <- coef(recursive_model)[1] + coef(recursive_model)[2] * puget_ts[540 + i] + coef(recursive_model)[3] * puget_ts[537 + i]
+}
+```
+
+## Rolling Scheme
+
+```{r}
+# generate a vector of 20 zero's
+fcast3 <- numeric(20)
+
+for (i in 1:20){
+  # fit AR(3), note that both "start" and "end" depend on i
+  rolling_model <- dynlm(puget_ts ~ lag(puget_ts, -1) + lag(puget_ts, -3), start = c(1975-01-01 + i), end = c(2021-09-01 + i))
+  # fill in forecasted values at the end of each iteration
+  fcast3[i] <- coef(rolling_model)[1] + coef(rolling_model)[2] * puget_ts[540 + i] + coef(rolling_model)[3] * puget_ts[537 + i]
+}
+```
+
+## Plots
+
+```{r}
+# graph calculated forecasts
+g0 <- window(puget_ts, start = c(1975-01-01))
+
+# format fcast variables into a TS
+f1 <- ts(fcast1, frequency = 12, start = c(1975-01-01))
+f2 <- ts(fcast2, frequency = 12, start = c(1975-01-01))
+f3 <- ts(fcast3, frequency = 12, start = c(1975-01-01))
+
+# plot forecasts
+plot(g0, col='black', main = "Puget Sound Housing Price Index\ntrends over time", ylab = "Housing Price Index", xlab = "Year")
+lines(f1, col = 'red')
+lines(f2, col = 'green')
+lines(f3, col = 'brown')
+
+```
 
