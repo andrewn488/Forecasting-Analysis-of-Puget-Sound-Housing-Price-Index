@@ -2,12 +2,18 @@
 title: "Forecasting DTC"
 author: "Glen Lewis, Jonathan Burns, Eric Beekman, Andrew Nalundasan"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
-output: 
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
-    toc: true
+    toc: yes
     toc_depth: 3
-    toc_float: true
-    number_sections: false
+    toc_float: yes
+    number_sections: no
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 ---
 
 ```{r setup, include=FALSE}
@@ -28,7 +34,11 @@ options(scipen=999)
 
 +Forecasting Housing Prices
 
-Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. We specifically wanted to investigate how house proces have changed in the last decade and compare pre-pandemic to post-pandemic price changes.
+Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. We want to investigate how house prices have changed in the last decade and compare pre-pandemic to post-pandemic price changes.
+
++Research Question
+
+How did the pandemic impact the behavior of the housing price index and what is the appropriate scheme (fixed, recursive, or rolling) that will help us best forecast the housing price index values after the pandemic?
 
 +Data Description
 
