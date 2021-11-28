@@ -1,0 +1,63 @@
+---
+title: "Recursive Model AR(3)"
+author: "Jonathan Burns"
+date: "11/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(forecast)
+```
+
+
+```{r}
+start = 2020
+ld_puget <- diff(log(puget_ts))
+fcasts <- vector(mode = "list", length = 24L)
+for (i in 1:24) {# start recursive estimator
+  log_diff = window(ld_puget, end = c(start - 1, 11 + i))
+  #fit <- auto.arima(log_diff)
+  fit <- arima(log_diff, order = c(3,0,0))
+  fcasts[[i]] <- forecast(fit, h = 1)
+  
+}
+# create 12 month forecast at end of series
+fcasts[[25]] <- forecast(fit, h = 11)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+autoplot(forecast(fcasts[[1]]), xlim = c(2017, 2023)) +
+  autolayer(forecast(fcasts[[2]])) +
+  autolayer(forecast(fcasts[[3]])) +
+  autolayer(forecast(fcasts[[4]])) +
+  autolayer(forecast(fcasts[[5]])) +
+  autolayer(forecast(fcasts[[6]])) +
+  autolayer(forecast(fcasts[[7]])) +
+  autolayer(forecast(fcasts[[8]])) +
+  autolayer(forecast(fcasts[[9]])) +
+  autolayer(forecast(fcasts[[10]])) +
+  autolayer(forecast(fcasts[[11]])) +
+  autolayer(forecast(fcasts[[12]])) +
+  autolayer(forecast(fcasts[[13]])) +
+  autolayer(forecast(fcasts[[14]])) +
+  autolayer(forecast(fcasts[[15]])) +
+  autolayer(forecast(fcasts[[16]])) +
+  autolayer(forecast(fcasts[[17]])) +
+  autolayer(forecast(fcasts[[18]])) +
+  autolayer(forecast(fcasts[[19]])) +
+  autolayer(forecast(fcasts[[20]])) +
+  autolayer(forecast(fcasts[[21]])) +
+  autolayer(forecast(fcasts[[22]])) +
+  autolayer(forecast(fcasts[[23]])) +
+  autolayer(forecast(fcasts[[24]])) +
+  autolayer(forecast(fcasts[[25]])) +
+  autolayer(ld_pred, series = "Actuals")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
