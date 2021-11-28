@@ -37,73 +37,41 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 Housing Data Plot
 =========================================
 
+- We identified three separate sections in the data to test our scheme models - pre-2011, 2011 - 2019, and 2020 onward
+
 <br>
 
 ![](NSA-graph.png){width=500px height=500px}
 
 
-Data Split
+Pre-2011
 =========================================
 
-+ Consistency in Average Points per Game across months
++ Model Selection
++ Forecasts
 
 
 
-Scoring Trends By Day
+2011 through 2019
 =========================================
 
-+ Consistency in Average Points per Game across days
++ Model Selection
++ Forecasts
 
 
-Scoring Trends By Opponent
+2020 Onward
 =========================================
 
-+ Scores more against Portland and Utah (~35 pts per game) but not a large difference.
-+ We want to see high-end production!
++ Model Selection
++ Forecasts
 
-
-What are conditions when he does score more?
+Conclusions
 =========================================
 
-+ Narrowed analysis down to 40+ point games
-+ Removed 69 point game as that is once in a lifetime (12th highest total ever)
-+ Michael Jordan scored 40+ points 132 times
-  - Cleveland 12, Milwaukee 11, New York and Boston 10 
++ The most appropriate models and schemes for each time series were:
 
-Over 40 Points - Months
-=========================================
-
-+ Average per game when over 40 points is close across months
-  - March is highest
+Pre-2011 - 
+2011 through 2019 - 
+2020 onward -
 
 
-
-Over 40 Points - Days
-=========================================
-
-+ Average per game when over 40 points is different across days
-  - Wednesday is highest by a large margin
-  - Thursday close as well
-
-
-Conclusion
-=========================================
-
-+ Based on the analysis related to games in which Michael Jordan scored at least 40 points I suggest:
-  - March
-  - Wednesday or Thursday
-  - Against Cleveland, Milwaukee, New York or Boston
-  
-+ Washington Wizards play the Milwaukee Bucks on Friday, March 29
-
-Appendix
-=========================================
-
-+ Since the 2001/02 season is over - what happened?
-  - 5 games over 40
-    - Season High 51 points - Saturday, December 29, 2001 vs Charlotte Hornets
-    - 45 on Monday, December 31, 2001 vs New Jersey Nets
-    - 44 on Friday, November 16, 2001 vs Utah Jazz
-    - 41 on Saturday, January 26, 2002 vs Phoenix Suns
-    - 40 on Thursday, January 24, 2002 vs Cleveland
-  - On Friday March 29, 2002 - 34 points
