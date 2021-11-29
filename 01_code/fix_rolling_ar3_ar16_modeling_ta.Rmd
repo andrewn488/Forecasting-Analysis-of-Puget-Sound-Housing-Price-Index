@@ -281,6 +281,29 @@ lines(fcast_pandemic_rolling_ts, col = 'blue', lwd = 2)
 lines(fcast_pandemic_overfitting_rolling_ts, col = 'purple', lwd = 2)
 
 ```
+```{r}
+summary(pand_model_rolling)
+```
+
+```{r}
+summary(pand_model_overfitting_rolling)
+```
+
+```{r}
+a <- overfitting_rolling_res <- resid(pand_model_overfitting_rolling)
+b <- rolling_res <- resid(pand_model_rolling)
+
+plot(fitted(pand_model_overfitting_rolling), overfitting_rolling_res)
+plot(fitted(pand_model_rolling), rolling_res)
+
+plot(a, col = 'black')
+plot(b, col = 'red')
+
+hist(overfitting_rolling_res)
+hist(rolling_res)
+```
+
+
 
 ```{r}
 # This second model will use a Recursive Forecast Modeling method.

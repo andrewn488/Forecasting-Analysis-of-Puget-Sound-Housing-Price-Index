@@ -14,12 +14,12 @@ output:
 Introduction
 =======================================
 
-+Forecasting Housing Prices
++ Forecasting Housing Prices
 
 - Housing price growth has exploded in recent months and house prices in general have increased from 1975 onward.
 - Vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale.
 
-+Research Question
++ Research Question
 
 - How did the pandemic impact the behavior of the housing price index and what is the appropriate scheme (fixed, recursive, or rolling) that will help us best forecast the housing price index values after the pandemic?
 
@@ -37,43 +37,25 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 Housing Data Plot
 =========================================
 
-- We identified three separate sections in the data to test our scheme models - pre-2011, 2011 - 2019, and 2020 onward
+- We identified three separate sections in the data to test our scheme models
 
 <br>
 
 ![](NSA-graph.png){width=500px height=500px}
 
 
-Pre-2011
+Forecasting Models
 =========================================
 
 + Model Selection
++ Schemes
 + Forecasts
 
 
-
-2011 through 2019
+Conclusions and next steps
 =========================================
 
-+ Model Selection
-+ Forecasts
-
-
-2020 Onward
-=========================================
-
-+ Model Selection
-+ Forecasts
-
-Conclusions
-=========================================
-
-+ The most appropriate models and schemes for each time series were:
-
-Pre-2011 - 
-
-2011 through 2019 - 
-
-2020 onward -
++ Determine the most appropriate models and schemes
++ MSE 
 
 
