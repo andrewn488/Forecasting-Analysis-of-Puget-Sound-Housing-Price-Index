@@ -1,0 +1,117 @@
+---
+title: "Fetch Data"
+author: "Glen Lewis, Jonathan Burns, Eric Beekman, Vishaal Diwan, Andrew Nalundasan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+# load libraries
+library(tidyverse)
+library(haven)
+library(tidylog)
+library(forecast)
+library(tseries)
+options(scipen=999)
+```
+
+# Read in data and wrangle
+
+```{r fetch_data}
+# read in data
+data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
+
+# filter for target GEO
+puget <- data %>% 
+  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+
+# add YearMonth column
+puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
+
+# pull columns from dataset we need for forecasting
+puget <- puget[, c('YearMonth', 'Index_SA')]
+
+# look at our data
+head(puget, 10)
+
+# declare as ts
+puget_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
+```
+
+```{r}
+# estimation and prediction ts
+# estimation set
+est_sa <- puget %>% 
+  filter(YearMonth < '2020-01-01')
+
+# estimation ts
+est_sa_ts <- ts(est_sa$Index_SA, frequency=12, start=1975)  # monthly data
+
+# prediction set
+pred_sa <- puget %>% 
+  filter(YearMonth >= '2020-01-01')
+
+# prediction ts
+pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
+
+```
+
+
+```{r}
+# logged differences
+
+# log difference of estimation and prediction timeseries
+ld_est <- diff(log(est_sa_ts))
+ld_pred <- diff(log(pred_sa_ts))
+```
+
+
+```{r}
+# plot all time series data
+plot(est_sa_ts, col='blue', main='Estimation SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(pred_sa_ts, col='blue', main='Prediction SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_est, col='blue', main='Estimation Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_pred, col='blue', main='Prediction Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
+```
+
+
+```{r}
+# plot all time series data - ACF
+acf(est_sa_ts, lag.max = 20, main='Estimation Set - ACF')
+acf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(pred_sa_ts, lag.max = 20, main='Prediction Set - ACF')
+acf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(ld_est, lag.max = 20, main='Estimation Log Difference Set - ACF')
+acf(ld_est, lag.max = 20, plot = FALSE)
+
+acf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - ACF')
+acf(ld_pred, lag.max = 20, plot = FALSE)
+```
+
+
+```{r}
+# plot all time series data - PACF
+pacf(est_sa_ts, lag.max = 20, main='Estimation Set - PACF')
+pacf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(pred_sa_ts, lag.max = 20, main='Prediction Set - PACF')
+pacf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(ld_est, lag.max = 20, main='Estimation Log Difference Set - PACF')
+pacf(ld_est, lag.max = 20, plot = FALSE)
+
+pacf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - PACF')
+pacf(ld_pred, lag.max = 20, plot = FALSE)
+```
+
