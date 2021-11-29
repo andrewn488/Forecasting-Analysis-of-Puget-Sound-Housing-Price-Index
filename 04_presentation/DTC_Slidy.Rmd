@@ -56,6 +56,11 @@ Conclusions and next steps
 =========================================
 
 + Determine the most appropriate models and schemes
+
+    + Fixed scheme
+    + Recursive scheme
+    + Rolling scheme
+    
 + MSE 
 
 
