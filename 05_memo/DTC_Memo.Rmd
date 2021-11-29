@@ -2,8 +2,8 @@
 title: "DTC - Forecasting Home Price Index - Group 3"
 author: "Eric Beekman, Jonathan Burns, Vishaal Diwan, Glen Lewis, and Andrew Nalundasan"
 output:
-  html_document: default
   word_document: default
+  html_document: default
   pdf_document: default
 ---
 
@@ -37,42 +37,42 @@ This ACF and PACF are based on the estimation set of data for the periods prior 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/est_acf.png){width=500px height=500px}
+![](est_acf.png){width=500px height=500px}
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/est_pacf.png){width=500px height=500px}
+![](est_pacf.png){width=500px height=500px}
 
 These ACF and PACF plots are based on the prediction set of data for the periods after Jan 1, 2020.
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/pred_acf.png){width=500px height=500px}
+![](pred_acf.png){width=500px height=500px}
 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/pred_pacf.png){width=500px height=500px}
+![](pred_pacf.png){width=500px height=500px}
 
 We then also created ACF and PACFs based on the logged differences of the estimation and prediction sets refered to above.
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_est_acf.png){width=500px height=500px}
+![](ld_est_acf.png){width=500px height=500px}
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_est_pacf.png){width=500px height=500px}
-
-
-<br>
-
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_pred_acf.png){width=500px height=500px}
+![](ld_est_pacf.png){width=500px height=500px}
 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_pred_pacf.png){width=500px height=500px}
+![](ld_pred_acf.png){width=500px height=500px}
+
+
+<br>
+
+![](ld_pred_pacf.png){width=500px height=500px}
 
 +Selecting a model
 
