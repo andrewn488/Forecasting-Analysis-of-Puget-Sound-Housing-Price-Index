@@ -41,8 +41,15 @@ vignettes/*.pdf
 <<<<<<< HEAD
 *.csv
 *.html
+<<<<<<< HEAD
 =======
 # CSVs and stuff
 .csv
 *.csv
 >>>>>>> 8a06b07647b5e31c1d15f1762426c62969321099
+=======
+
+# Mac Specific Ignore
+*.DS_Store
+
+>>>>>>> dc0ea95c92480bec90946c5201f1512efbebaa6d

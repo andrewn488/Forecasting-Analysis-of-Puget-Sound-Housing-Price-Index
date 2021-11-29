@@ -51,6 +51,11 @@ Forecasting Models
 + Schemes
 + Forecasts
 
+![](Screen Shot 2021-11-28 at 6.09.10 PM.png){width=500px height=500px}
+![](Screen Shot 2021-11-28 at 6.09.15 PM.png){width=500px height=500px}
+![](Screen Shot 2021-11-28 at 6.17.19 PM){width=500px height=500px}
+
+![](Screen Shot 2021-11-28 at 6.10.09 PM.png){width=500px height=500px}
 
 Conclusions and next steps
 =========================================

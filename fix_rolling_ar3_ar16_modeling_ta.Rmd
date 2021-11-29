@@ -1,0 +1,444 @@
+---
+title: "TA"
+output: html_notebook
+---
+
+
+
+```{r}
+# Library Load
+library(tidyverse)
+library(dynlm)
+library(forecast)
+library(vtable)
+library (lubridate)
+library(scales)
+library(patchwork)
+library(stats)
+```
+
+```{r}
+
+# loads csv into a base data frame
+base_housing_data <- read_csv("fmhpi_master_file.csv")
+
+# the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
+
+base_puget_precovid_data <- filter(base_housing_data, GEO_Name == 
+                            'Seattle-Tacoma-Bellevue WA') %>% 
+                            filter(Year <= 2019)
+
+# Creates a new YearMonth date variable as a date class (day is set to 01)
+
+base_puget_precovid_data$YearMonth <- as.Date(with(base_puget_precovid_data,paste(Year, Month, 1, sep="-")),"%Y-%m-%d") 
+  
+# Narrows the number of variables by removing the Code variables and then reorders the variables. The not seasonally adjust variable was removed per the Professor's guidance 11/18/21)
+wip_puget_precovid_data <- base_puget_precovid_data %>% 
+  select(YearMonth, Index_SA)
+```
+
+```{r}
+# The following code plots the data to determine stationarity 
+
+# Converts the data to 2 time series
+index_sa_ts <- ts(wip_puget_precovid_data$Index_SA, frequency = 12, start = c(1975))
+
+# The following plots the not seasonally adjusted (nsa) index then assesses the acf and pacf.
+plot(index_sa_ts, main = 'Pre-Covid Freddie Mac Seasonally 
+     Adjusted Housing Price Index from 2011 - 2019 ', ylab = 'Housing Index', xlab = 'Year')
+
+acf(index_sa_ts)
+pacf(index_sa_ts)
+
+# The sa index for the pre-covid period is not stationary, showing the same behavior as the nsa index.  Of note, the seasonality in the nsa plot is captured by a small repeating wave along the plot that is not seen in the sa plot.
+
+```
+## Observation(s):
+1. The plots shows that the indexes are not stationary. The following section will make the plots covariance stationary.
+
+```{r}
+
+# The following code log diff's the na index to make them stationary.
+log_diff_sa_ts <- diff(log(index_sa_ts))
+
+mean(log_diff_sa_ts)
+# mean ==  0.0053
+
+sd(log_diff_sa_ts)
+# sd == 0.0077
+
+hist(log_diff_sa_ts)
+
+# normally distributed
+
+ts.plot(log_diff_sa_ts)
+abline(h = '.0053')
+
+```
+
+## Observation(s): 
+1. The log diff time series values are normally distributed with a mean of .0053 and a standard deviation of .0077.  
+The seasonally adjusted (sa) index shows a high persistence below the mean from 2008 - 2010, corresponding with the Great Recession, and then a persistence above the mean from 2011 to 2019.
+
+```{r}
+# The following builds the acf and pacf plots for the stationary time series plots.
+acf(log_diff_sa_ts)
+pacf(log_diff_sa_ts, lag.max = 50)
+
+```
+## Observation(s):
+1. The acf has a geometrically decaying collation indicative of a AR model. 
+2. The pacf has a significant drop off at lag 3.  
+3. There is a group of significant spikes between 1.0 and 1.5. Might consider a AR(3) model or an extreme model of AR(16).  The AR(16) will most likely be a case of over fitting.  
+
+```{r}
+
+# The following creates the ts that will be used in the forecasting. 
+
+wip_puget_housing_obs <- filter(base_housing_data, GEO_Name == 
+                            'Seattle-Tacoma-Bellevue WA') %>%  
+                            select(Year, Month, Index_SA)
+
+puget_housing_obs_ts <- ts(wip_puget_housing_obs$Index_SA, frequency = 12, start = c(1975, 1))
+
+
+covid_pand_housing_spec_obs <- window(puget_housing_obs_ts, start = c(2020, 1))
+# Forecast horizon will be 21 (01/2020 - 05/2021). 
+```
+
+```{r}
+#  This first model will use a Fixed Forecast Modeling method.
+
+fcast_pandemic_fixed <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+pand_model_fixed <- dynlm(puget_housing_obs_ts ~ 
+                            stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3), 
+                            start = c(1975, 1), end = c(2019, 12))
+                        # The model will use only the observations from 01/1975 to 12/2019 
+  
+
+for (i in 1:21) {
+  fcast_pandemic_fixed[i] <- coef(pand_model_fixed)[1] +
+                            (coef(pand_model_fixed)[2] *   
+                            puget_housing_obs_ts[539 + i]) +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_fixed)[3] * 
+                            puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_fixed)[4] *
+                            puget_housing_obs_ts[537 + i]
+                        # coef 4 = B3 (lag 3)
+}
+
+# Converts the 'forecast_xx' list of forecast numeric into a time series.
+fcast_pandemic_fixed_ts <- ts(fcast_pandemic_fixed, frequency = 12, start = c(2020, 1))
+
+# The following plots fixed forecasts against actual observations. 
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_fixed_ts, col = 'red')
+
+```
+
+```{r}
+# This second model will use a Recursive Forecast Modeling method.
+
+fcast_pandemic_recursive <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_recursive <- dynlm(puget_housing_obs_ts ~
+                                stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3), 
+                            start = c(1975, 1), end = c(2019, 11 + i))
+                        # There are 540 observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_recursive[i] <- coef(pand_model_recursive)[1] +
+                            coef(pand_model_recursive)[2] *   
+                            puget_housing_obs_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_recursive)[3] * 
+                            puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_recursive)[4] *
+                            puget_housing_obs_ts[537 + i]
+                        # coef 4 = B3 (lag 3)
+}
+
+# Converts the 'forecast_xx' list of forecast numeric into a time series.
+fcast_pandemic_recursive_ts <- ts(fcast_pandemic_recursive, frequency = 12, start = c(2020, 1))
+
+# The following plots recursive, and fixed forecasts against actual observations. 
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_fixed_ts, col = 'red')
+lines(fcast_pandemic_recursive_ts, col = 'green')
+```
+```{r}
+#  This third model will use a Rolling Forecast Modeling method.
+
+fcast_pandemic_rolling <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_rolling <- dynlm(puget_housing_obs_ts ~
+                                stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3), 
+                            start = c(1975, 1 + i), end = c(2019, 11 + i))
+                        # There are 540 observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_rolling[i] <- coef(pand_model_recursive)[1] +
+                            coef(pand_model_recursive)[2] *   
+                            puget_housing_obs_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_recursive)[3] * 
+                            puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_recursive)[4] *
+                            puget_housing_obs_ts[537 + i]
+                        # coef 4 = B3 (lag 3)
+}
+
+# Converts the 'forecast_xx' list of forecast numeric into a time series.
+fcast_pandemic_rolling_ts <- ts(fcast_pandemic_rolling, frequency = 12, start = c(2020, 1))
+
+# The following plots recursive, fixed, and rolling forecasts against actual observations. 
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_fixed_ts, col = 'red')
+lines(fcast_pandemic_recursive_ts, col = 'green')
+lines(fcast_pandemic_rolling_ts, col = 'blue')
+
+```
+## Observation(s): 
+1.  All the model forecasts are very similar for the time periods of: 
+  a. First Calendar Quarter 2020, 
+  b. Late Summer 2020 to early summer 2021
+2.  For those time periods where the forecasts deviate from each other, the AR(3) rolling model appears to better match actual observations than the fixed and recursive, but not by much.
+3.  There is one spot where the fix forecast model is the better predictor, in Mid_Summer 2020 but the duration is  minor and most likely is a result of randam noise.  
+
+```{r}
+#  This following 3 models will use the same 3 Forecast Modeling method but use a AR(16) to investigate over-fitting. 
+
+# The hypothesis:
+#H0 = The AR(16) model forecasts are worse than the AR(3) model forecasts
+#H1 = The AR(16) model forecasts are better than the AR(3) model forecasts 
+
+fcast_pandemic_overfitting_rolling <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_overfitting_rolling <- dynlm(puget_housing_obs_ts ~
+                            stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3) +
+                            stats::lag(puget_housing_obs_ts, -11) +
+                            stats::lag(puget_housing_obs_ts, -12) + 
+                            stats::lag(puget_housing_obs_ts, -13) + 
+                            stats::lag(puget_housing_obs_ts, -14) + 
+                            stats::lag(puget_housing_obs_ts, -15) + 
+                            stats::lag(puget_housing_obs_ts, -16),
+                            start = c(1975, 1 + i), end = c(2019, 11 + i))
+                        # There are 540 observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_overfitting_rolling[i] <- coef(pand_model_overfitting_rolling)[1] +
+                            coef(pand_model_overfitting_rolling)[2] *   
+                            puget_housing_obs_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_overfitting_rolling)[3] * puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_overfitting_rolling)[4] * puget_housing_obs_ts[537 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_overfitting_rolling)[5] * puget_housing_obs_ts[529 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_overfitting_rolling)[6] * puget_housing_obs_ts[528 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_overfitting_rolling)[7] * puget_housing_obs_ts[527 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_overfitting_rolling)[8] * puget_housing_obs_ts[526 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_overfitting_rolling)[9] * puget_housing_obs_ts[525 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_overfitting_rolling)[10] * puget_housing_obs_ts[524 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_overfitting_rolling_ts <- ts(fcast_pandemic_overfitting_rolling, frequency = 12, start = c(2020, 1))
+
+# The following plots the AR(3) and AR(16) rolling forecasts against the actual observations.
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_rolling_ts, col = 'blue', lwd = 2)
+lines(fcast_pandemic_overfitting_rolling_ts, col = 'purple', lwd = 2)
+
+```
+```{r}
+summary(pand_model_rolling)
+```
+
+```{r}
+summary(pand_model_overfitting_rolling)
+```
+
+```{r}
+a <- overfitting_rolling_res <- resid(pand_model_overfitting_rolling)
+b <- rolling_res <- resid(pand_model_rolling)
+
+plot(fitted(pand_model_overfitting_rolling), overfitting_rolling_res)
+plot(fitted(pand_model_rolling), rolling_res)
+
+plot(a, col = 'black')
+plot(b, col = 'red')
+
+hist(overfitting_rolling_res)
+hist(rolling_res)
+```
+
+
+
+```{r}
+# This second model will use a Recursive Forecast Modeling method.
+
+fcast_pandemic_overfitting_recursive <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_overfitting_recursive <- dynlm(puget_housing_obs_ts ~
+                            stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3) +
+                            stats::lag(puget_housing_obs_ts, -11) +
+                            stats::lag(puget_housing_obs_ts, -12) + 
+                            stats::lag(puget_housing_obs_ts, -13) + 
+                            stats::lag(puget_housing_obs_ts, -14) + 
+                            stats::lag(puget_housing_obs_ts, -15) + 
+                            stats::lag(puget_housing_obs_ts, -16), 
+                            start = c(1975, 1), end = c(2019, 11 + i))
+                        # There are 540 observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_overfitting_recursive[i] <- coef(pand_model_overfitting_recursive)[1] +
+                            coef(pand_model_overfitting_recursive)[2] *   
+                            puget_housing_obs_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_overfitting_recursive)[3] * puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_overfitting_recursive)[4] * puget_housing_obs_ts[537 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_overfitting_recursive)[5] * puget_housing_obs_ts[529 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_overfitting_recursive)[6] * puget_housing_obs_ts[528 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_overfitting_recursive)[7] * puget_housing_obs_ts[527 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_overfitting_recursive)[8] * puget_housing_obs_ts[526 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_overfitting_recursive)[9] * puget_housing_obs_ts[525 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_overfitting_recursive)[10] * puget_housing_obs_ts[524 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_overfitting_recursive_ts <- ts(fcast_pandemic_overfitting_recursive, frequency = 12, start = c(2020, 1))
+
+# The following plots the AR(3) and AR(16) recursive forecasts against the actual observations.
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_recursive_ts, col = 'green', lwd = 3)
+lines(fcast_pandemic_overfitting_recursive_ts, col = 'purple', lwd = 2)
+
+```
+```{r}
+#  This first model will use a Fixed Forecast Modeling method.
+
+fcast_pandemic_overfit_fixed <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+pand_model_overfit_fixed <- dynlm(puget_housing_obs_ts ~
+                            stats::lag(puget_housing_obs_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(puget_housing_obs_ts, -2) + 
+                            stats::lag(puget_housing_obs_ts, -3) +
+                            stats::lag(puget_housing_obs_ts, -11) +
+                            stats::lag(puget_housing_obs_ts, -12) + 
+                            stats::lag(puget_housing_obs_ts, -13) + 
+                            stats::lag(puget_housing_obs_ts, -14) + 
+                            stats::lag(puget_housing_obs_ts, -15) + 
+                            stats::lag(puget_housing_obs_ts, -16), 
+                            start = c(1975, 1), end = c(2019, 12))
+                        # The model will use only the observations from 01/1975 to 12/2019 
+  
+
+for (i in 1:21) {
+  fcast_pandemic_overfit_fixed[i] <- coef(pand_model_overfit_fixed)[1] +
+                            coef(pand_model_overfit_fixed)[2] *   
+                            puget_housing_obs_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_overfit_fixed)[3] * puget_housing_obs_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_overfit_fixed)[4] * puget_housing_obs_ts[537 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_overfit_fixed)[5] * puget_housing_obs_ts[529 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_overfit_fixed)[6] * puget_housing_obs_ts[528 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_overfit_fixed)[7] * puget_housing_obs_ts[527 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_overfit_fixed)[8] * puget_housing_obs_ts[526 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_overfit_fixed)[9] * puget_housing_obs_ts[525 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_overfit_fixed)[10] * puget_housing_obs_ts[524 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_overfit_fixed_ts <- ts(fcast_pandemic_overfit_fixed, frequency = 12, start = c(2020, 1))
+
+# The following plots the AR(3) and AR(16) fixed forecasts against the actual observations.
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_fixed_ts, col = 'red')
+lines(fcast_pandemic_overfit_fixed_ts, col = 'purple')
+
+```
+
+```{r}
+
+# The folowing plots all the AR forecasts for comparision. 
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_fixed_ts, col = 'green', lwd = 2)
+lines(fcast_pandemic_recursive_ts, col = 'brown',)
+lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
+
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_overfit_fixed_ts, col = 'purple')
+lines(fcast_pandemic_overfitting_recursive_ts, col = 'brown')
+lines(fcast_pandemic_overfitting_rolling_ts, col = 'orange')
+
+plot(covid_pand_housing_spec_obs)
+lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
+lines(fcast_pandemic_overfitting_rolling_ts, col = 'purple', lwd = 2)
+
+```
+
+## Observation(s):
+1. The AR(3) and AR(16) forecasts are very similar during the first half of 2020. Like all the models, the forecasts for the first half of 2020 lag the actual market behavior by about 30-45 days.
+2.  The forecasts become more accurate during the second half of 2020. 
+3. Based on the plots, after mid-2020, the AR(16) model becomes the better predictor of market behavior.
+
+## Conclusion(s): 
+Tradition convention is to choose a simpler model because a simpler model is more likely to reflect the behaviors of a population when you build that model on observations of a sample group. 
+
+Our AR(16) model runs counter to this precept. We assessed the reason the AR(16) model is a better predictor of overall market behavior from mid 2020 and on vice being an over-fitted model is because lags 11 - 16 occurred during a time (2018) when the market index behaved in a fashion similar to the mid 2020- 2021 growth behavior. Because the lag 16 (11-16 actually) behavior better mirrors the 2020 -2021 behavior than the simpler lag 3 model (whose grows during the last 3 months of 2019 was significantly lower than previous lags), including them refined the model by including the type of index behavior one could expect during a "hot" market time frame that is NOT captured in the simpler, short term, lag 3 model.
+
+## Next Step(s):
+1.  Need to verify the significance of the model coefficients, etc. to: Verify that the AR(16) is indeed different from the AR(3) statistically. 
