@@ -44,36 +44,17 @@ Housing Data Plot
 ![](NSA-graph.png){width=500px height=500px}
 
 
-Pre-2011
+Forecasting Models
 =========================================
 
 + Model Selection
++ Schemes
 + Forecasts
 
-
-
-2011 through 2019
-=========================================
-
-+ Model Selection
-+ Forecasts
-
-
-2020 Onward
-=========================================
-
-+ Model Selection
-+ Forecasts
 
 Conclusions
 =========================================
 
-+ The most appropriate models and schemes for each time series were:
-
-Pre-2011 - 
-
-2011 through 2019 - 
-
-2020 onward -
++ The most appropriate models and schemes were: XXXX
 
 
