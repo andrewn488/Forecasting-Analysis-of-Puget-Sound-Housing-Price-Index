@@ -80,7 +80,7 @@ Because the ACF above has a geometrically decaying collation, the use of an AR m
 
 +Choosing a Loss Function
 
-We think that we have an asymmetrical loss function. Errors in predicting the house price index both in over predicting and under predicting have similar consequences. If we under forecast the house price index (ie it is higher that our estimate) then as a buyer we might under budget and continue to be unable to purchase a home. As a government interested in monitoring the housing market and making zoning decisions or creating policy for housing, a forecast below the actual would mean that we did not allocate enough to help individuals buy homes or that the policy decisions will not appropriately respond to the real prices in the house market.
+We think that we have an asymmetrical loss function. Errors in predicting the house price index both in over predicting and under predicting do not have similar consequences. If we under forecast the house price index (ie it is higher that our estimate) then as a buyer we might under budget and continue to be unable to purchase a home. As a government interested in monitoring the housing market and making zoning decisions or creating policy for housing, a forecast below the actual would mean that we did not allocate enough to help individuals buy homes or that the policy decisions will not appropriately respond to the real prices in the house market. If we over predict the house price index, the consequences are less severe in that policy will continue to slow the house price growth we've seen since 2011.
 
 +Assessing the forecasts
 
