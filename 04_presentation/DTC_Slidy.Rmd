@@ -7,12 +7,39 @@ output:
 ---
 
  
-```{r echo = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE}
 
+library(tidyverse)
+library(dynlm)
+library(forecast)
+library(vtable)
+library (lubridate)
+library(scales)
+library(patchwork)
+library(stats)
+library(palmerpenguins)
+
+# loads csv into a base data frame
+base_housing_data <- read_csv("fmhpi_master_file.csv")
+
+# the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
+
+base_puget_precovid_data <- filter(base_housing_data, GEO_Name == 
+                            'Seattle-Tacoma-Bellevue WA') %>% 
+                            filter(Year <= 2019)
+
+# Creates a new YearMonth date variable as a date class (day is set to 01)
+
+base_puget_precovid_data$YearMonth <- as.Date(with(base_puget_precovid_data,paste(Year, Month, 1, sep="-")),"%Y-%m-%d") 
+  
+# Narrows the number of variables by removing the Code variables and then reorders the variables. The not seasonally adjust variable was removed per the Professor's guidance 11/18/21)
+wip_puget_precovid_data <- base_puget_precovid_data %>% 
+  select(YearMonth, Index_SA)
 ```
 
 Introduction
 =======================================
+<div style="float: left; width: 50%;">
 
 + Forecasting Housing Prices
 
@@ -23,6 +50,19 @@ Introduction
 
 - How did the pandemic impact the behavior of the housing price index and what is the appropriate scheme (fixed, recursive, or rolling) that will help us best forecast the housing price index values after the pandemic?
 
+</div>
+<div style="float: right; width: 50%;">
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
+# The following code plots the data to determine stationarity 
+
+# Converts the data to 2 time series
+index_sa_ts <- ts(wip_puget_precovid_data$Index_SA, frequency = 12, start = c(1975))
+
+# The following plots the not seasonally adjusted (nsa) index then assesses the acf and pacf.
+plot(index_sa_ts, main = 'Freddie Mac Seasonally Adjusted Housing Price Index
+     2011 - 2019 ', ylab = 'Housing Index', xlab = 'Year', col = 'blue')
+```
+</div>
 
 Data Description
 =========================================
@@ -34,28 +74,57 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 - The data includes seasonally and non-seasonally adjusted series which are available at three different geographical levels (metropolitan, state, and national).
 - The data set includes each month from January 1975 onward.
 
-Housing Data Plot
+Housing Data
 =========================================
+<div style="float: left; width: 50%;">
 
-- We identified three separate sections in the data to test our scheme models
++ Model Selection
 
-<br>
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
 
-![](NSA-graph.png){width=500px height=500px}
+# The following code log diff's the na index to make them stationary.
+log_diff_sa_ts <- diff(log(index_sa_ts))
 
+plot(log_diff_sa_ts, main = 'Log/Diff of Seasonally Adjusted Housing Index', ylab = 'Log Difference', xlab = 'Year', col = "blue")
+abline(h = '.0053')
+text(1978, .0065, "Unconditional", cex = .4, col = 'black')
+text(1978, .0040, "Mean", cex = .4, col = 'black')
+```
+</div>
+<div style="float: left; width: 50%;">
+
+- Based on the ACF and PACF we elected to start with an AR(3) and AR(16) Model
+
+```{r echo=FALSE, fig.height=3, fig.width=4, message=FALSE, warning=FALSE}
+# The following builds the acf and pacf plots for the stationary time series plots.
+
+ggAcf(log_diff_sa_ts) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('ACF') +
+  labs(y = ' ')
+  
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=3, fig.width=4}
+
+ggPacf(log_diff_sa_ts) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('PACF') +
+  labs(y = ' ') 
+```
 
 Forecasting Models
 =========================================
 
-+ Model Selection
 + Schemes
 + Forecasts
 
-![](Screen Shot 2021-11-28 at 6.09.10 PM.png){width=500px height=500px}
-![](Screen Shot 2021-11-28 at 6.09.15 PM.png){width=500px height=500px}
-![](Screen Shot 2021-11-28 at 6.17.19 PM){width=500px height=500px}
 
-![](Screen Shot 2021-11-28 at 6.10.09 PM.png){width=500px height=500px}
+
+
+
 
 Conclusions and next steps
 =========================================
