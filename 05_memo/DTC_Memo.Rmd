@@ -2,8 +2,8 @@
 title: "DTC - Forecasting Home Price Index - Group 3"
 author: "Eric Beekman, Jonathan Burns, Vishaal Diwan, Glen Lewis, and Andrew Nalundasan"
 output:
-  html_document: default
   word_document: default
+  html_document: default
   pdf_document: default
 ---
 
@@ -37,42 +37,42 @@ This ACF and PACF are based on the estimation set of data for the periods prior 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/est_acf.png){width=500px height=500px}
+![](est_acf.png){width=500px height=500px}
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/est_pacf.png){width=500px height=500px}
+![](est_pacf.png){width=500px height=500px}
 
 These ACF and PACF plots are based on the prediction set of data for the periods after Jan 1, 2020.
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/pred_acf.png){width=500px height=500px}
+![](pred_acf.png){width=500px height=500px}
 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/pred_pacf.png){width=500px height=500px}
+![](pred_pacf.png){width=500px height=500px}
 
 We then also created ACF and PACFs based on the logged differences of the estimation and prediction sets refered to above.
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_est_acf.png){width=500px height=500px}
+![](ld_est_acf.png){width=500px height=500px}
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_est_pacf.png){width=500px height=500px}
-
-
-<br>
-
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_pred_acf.png){width=500px height=500px}
+![](ld_est_pacf.png){width=500px height=500px}
 
 
 <br>
 
-![](~/Classes/Fall 2021/Forecasting/omsba-5305-DTC/03_visuals/ld_pred_pacf.png){width=500px height=500px}
+![](ld_pred_acf.png){width=500px height=500px}
+
+
+<br>
+
+![](ld_pred_pacf.png){width=500px height=500px}
 
 +Selecting a model
 
@@ -80,7 +80,7 @@ Because the ACF above has a geometrically decaying collation, the use of an AR m
 
 +Choosing a Loss Function
 
-We think that we have an asymmetrical loss function. Errors in predicting the house price index both in over predicting and under predicting do not have similar consequences. If we under forecast the house price index (ie it is higher that our estimate) then as a buyer we might under budget and continue to be unable to purchase a home. As a government interested in monitoring the housing market and making zoning decisions or creating policy for housing, a forecast below the actual would mean that we did not allocate enough to help individuals buy homes or that the policy decisions will not appropriately respond to the real prices in the house market. If we over predict the house price index, the consequences are less severe in that policy will continue to slow the house price growth we've seen since 2011.
+We think that we have a symmetrical loss function. Errors in predicting the house price index both in over predicting and under predicting do have similar consequences as the main parties impacted are either buyers or sellers and the trade-off in an estimation error in either direction proportionately impact both parties the same. We determined that there is a not a clear loss in either scenario as a gain for one party is a loss for another and vice versa.
 
 +Assessing the forecasts
 
@@ -89,3 +89,5 @@ The AR(3) and AR(16) forecasts are very similar during the first half of 2020. L
 The traditional convention is to choose a simpler model (ie AR(3) in this scenario) because a simpler model is more likely to reflect the behaviors of a population when you build that model on observations of a sample group. A lower process number allows for randomness to exist in the model - which is realistic.
 
 However, the AR(16) model runs counter to this precept. It appears that the AR(16) model is a better predictor of overall market behavior from mid 2020 and on vice being an over-fitted model is because lags 11 - 16 occurred during a time (2018) when the market index behaved in a fashion similar to the mid 2020- 2021 growth behavior. Because the lag 16 (11-16 actually) behavior better mirrors the 2020 -2021 behavior than the simpler lag 3 model (whose grows during the last 3 months of 2019 was significantly lower than previous lags). Including these additional lags refined the model by including the type of index behavior one could expect during a "hot" market time frame that is NOT captured in the simpler, short term, lag 3 model.
+
+For the AR(3) model we completed a recursive, fixed, and rolling scheme. The fixed and rolling schemes are consistent with each other and the recursive model provided a forecast width of 0.1 in the index. We also used the fixed and rolling schemes in the AR(16) module and noted that those schemes also provide similar forecasts.
