@@ -115,6 +115,7 @@ ggPacf(log_diff_sa_ts) +
   ggtitle('PACF') +
   labs(y = ' ') 
 ```
+</div>
 
 Forecasting Models
 =========================================
@@ -122,21 +123,13 @@ Forecasting Models
 + Schemes
 + Forecasts
 
-<<<<<<< HEAD
 ![](../03_visuals/PACF log_diff_sa_ts.png){width=500px height=500px}
-![](../03_visuals/PACF log_diff_sa_ts.png){width=500px height=500px}
+
 ![](Screen Shot 2021-11-28 at 6.17.19 PM.png){width=500px height=500px}
 
 ![](../03_visuals/AR_comparisons.png){width=500px height=500px}
 
 ![](Forecast from ARIMA(3,0,0) with non-zero mean.png){width=500px height=500px}
-
-=======
-
-
-
-
->>>>>>> 7227fb0793116b55532696d123f3571e90532b48
 
 Conclusions and next steps
 =========================================
