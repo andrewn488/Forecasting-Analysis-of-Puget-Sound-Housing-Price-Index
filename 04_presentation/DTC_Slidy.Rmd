@@ -20,7 +20,7 @@ library(stats)
 library(palmerpenguins)
 
 # loads csv into a base data frame
-base_housing_data <- read_csv("fmhpi_master_file.csv")
+base_housing_data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
 
 # the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
 
@@ -82,12 +82,9 @@ Housing Data
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
 
-<<<<<<< HEAD
-![](../03_visuals/est_plot.png){width=500px height=500px}
-=======
 # The following code log diff's the na index to make them stationary.
 log_diff_sa_ts <- diff(log(index_sa_ts))
->>>>>>> 7227fb0793116b55532696d123f3571e90532b48
+
 
 plot(log_diff_sa_ts, main = 'Log/Diff of Seasonally Adjusted Housing Index', ylab = 'Log Difference', xlab = 'Year', col = "blue")
 abline(h = '.0053')
