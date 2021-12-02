@@ -89,15 +89,16 @@ text(1978, .0040, "Mean", cex = .4, col = 'black')
 </div>
 <div style="float: left; width: 50%;">
 - Stationarity
-- The Augmented Dickey-Fuller Test shows we can not reject that the log/diff is not stationary
-- The KPSS Test; however, shows that we can not reject that the log/diff stationary around a deterministic trend
+
+- The Augmented Dickey-Fuller Test shows we can reject the null hypothesis that the log/diff of the index is stationary.
+
+ADF stat: -3.2 / ADF critical Stat: -2.8
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # The following code log diff's the na index to make them stationary.
 log_diff_sa_ts <- diff(log(index_sa_ts))
 
 adf.test(log_diff_sa_ts)
-kpss.test(log_diff_sa_ts)
 ```
 </div>
 
