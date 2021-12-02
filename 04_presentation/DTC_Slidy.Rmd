@@ -8,7 +8,6 @@ output:
 
  
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-
 library(tidyverse)
 library(dynlm)
 library(forecast)
@@ -17,10 +16,10 @@ library (lubridate)
 library(scales)
 library(patchwork)
 library(stats)
-library(palmerpenguins)
+library(tseries)
 
 # loads csv into a base data frame
-base_housing_data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
+base_housing_data <- read_csv("fmhpi_master_file.csv")
 
 # the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
 
@@ -78,13 +77,9 @@ Housing Data
 =========================================
 <div style="float: left; width: 50%;">
 
-+ Model Selection
-
+- The log/diff of the index 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
-
-# The following code log diff's the na index to make them stationary.
 log_diff_sa_ts <- diff(log(index_sa_ts))
-
 
 plot(log_diff_sa_ts, main = 'Log/Diff of Seasonally Adjusted Housing Index', ylab = 'Log Difference', xlab = 'Year', col = "blue")
 abline(h = '.0053')
@@ -93,9 +88,44 @@ text(1978, .0040, "Mean", cex = .4, col = 'black')
 ```
 </div>
 <div style="float: left; width: 50%;">
+- Stationarity
+- The Augmented Dickey-Fuller Test shows we can not reject that the log/diff is not stationary
+- The KPSS Test; however, shows that we can not reject that the log/diff stationary around a deterministic trend
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# The following code log diff's the na index to make them stationary.
+log_diff_sa_ts <- diff(log(index_sa_ts))
+
+adf.test(log_diff_sa_ts)
+kpss.test(log_diff_sa_ts)
+```
+</div>
+
+Model Selection
+==============================
+<div style="float: left; width: 50%;">
 
 - Based on the ACF and PACF we elected to start with an AR(3) and AR(16) Model
 
+- AR(3)
+puget_housing_obs_ts ~
+      stats::lag(puget_housing_obs_ts, -1) +
+      stats::lag(puget_housing_obs_ts, -2) + 
+      stats::lag(puget_housing_obs_ts, -3)
+
+- AR(16)
+puget_housing_obs_ts ~          
+      stats::lag(puget_housing_obs_ts, -1) +
+      stats::lag(puget_housing_obs_ts, -2) + 
+      stats::lag(puget_housing_obs_ts, -3) +
+      stats::lag(puget_housing_obs_ts, -11) +
+      stats::lag(puget_housing_obs_ts, -12) + 
+      stats::lag(puget_housing_obs_ts, -13) + 
+      stats::lag(puget_housing_obs_ts, -14) + 
+      stats::lag(puget_housing_obs_ts, -15) + 
+      stats::lag(puget_housing_obs_ts, -16)
+</div>
+<div style="float: left; width: 50%;">
 ```{r echo=FALSE, fig.height=3, fig.width=4, message=FALSE, warning=FALSE}
 # The following builds the acf and pacf plots for the stationary time series plots.
 
@@ -123,11 +153,8 @@ Forecasting Models
 + Schemes
 + Forecasts
 
-![](../03_visuals/PACF log_diff_sa_ts.png){width=500px height=500px}
 
-![](Screen Shot 2021-11-28 at 6.17.19 PM.png){width=500px height=500px}
 
-![](../03_visuals/AR_comparisons.png){width=500px height=500px}
 
 ![](Forecast from ARIMA(3,0,0) with non-zero mean.png){width=500px height=500px}
 
