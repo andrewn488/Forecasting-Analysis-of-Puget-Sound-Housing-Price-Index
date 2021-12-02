@@ -1,6 +1,6 @@
 ---
 title: "Recursive Model AR(3)"
-author: "Jonathan Burns"
+author: "Jonathan Burns et al"
 date: "11/23/2021"
 output: html_document
 ---
