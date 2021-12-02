@@ -186,7 +186,7 @@ pacf(ld_pred, lag.max = 20, plot = FALSE)
 ## Examine Data
 
 ```{r}
-# plot using ggplot just for fun
+# plot using ggplot
 ggplot(puget, aes(YearMonth, puget_ts)) + 
   geom_line() + scale_x_date('Year') + 
   labs(y = "Seasonally Adjusted Index",
