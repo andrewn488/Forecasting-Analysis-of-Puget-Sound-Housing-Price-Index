@@ -374,6 +374,9 @@ plot(covid_pand_housing_prediction_sample)
 lines(fcast_pandemic_fixed_ts, col = 'green', lwd = 2)
 lines(fcast_pandemic_recursive_ts, col = 'brown',lwd =1)
 lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
+
+accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)
+accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)
 ```
 
 ## Observation(s):
