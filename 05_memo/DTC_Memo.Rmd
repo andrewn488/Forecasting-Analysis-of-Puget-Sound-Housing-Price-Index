@@ -69,8 +69,6 @@ Because the ACF above has a geometrically decaying collation, the use of an AR m
 
 + Include results from auto-ARIMA calculation
 
-
-
 # Choosing a Loss Function
 
 We think that we have a symmetrical loss function. Errors in predicting the house price index both in over predicting and under predicting do have similar consequences as the main parties impacted are either buyers or sellers and the trade-off in an estimation error in either direction proportionately impact both parties the same. We determined that there is a not a clear loss in either scenario as a gain for one party is a loss for another and vice versa.
@@ -86,6 +84,13 @@ The traditional convention is to choose a simpler model (ie AR(3) in this scenar
 ![](../03_visuals/AR_comparisons.png){width=600px height=450px}
 
 Figure #: Plot showing all AR Forecasts plotted together
+
+Below is a plot of a simple rolling 3 month average of our data
+<br>
+
+![](../03_visuals/3mo_rolling_avg.png){width=600px height=450px}
+
+Figure 3: Plot showing 3 month rolling average of our data
 
 # Results Discussion
 
