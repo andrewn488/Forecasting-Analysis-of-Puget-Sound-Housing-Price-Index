@@ -30,9 +30,12 @@ options(scipen=999)
 # read in data
 data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
 
+# select GEO region
+region = 'Seattle-Tacoma-Bellevue WA'
+
 # filter for target GEO
 puget <- data %>% 
-  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+  filter(GEO_Type == 'CBSA', GEO_Name == region)
 
 # add YearMonth column
 puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
