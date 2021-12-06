@@ -109,8 +109,9 @@ pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
 # logged differences
 
 # log difference of estimation and prediction timeseries
-ld_est <- diff(log(est_sa_ts))
-ld_pred <- diff(log(pred_sa_ts))
+ld_ts <- diff(log(puget_ts))  # log difference of entire dataset
+ld_est <- diff(log(est_sa_ts))  # log difference of estimation set
+ld_pred <- diff(log(pred_sa_ts))  # log difference of prediction set
 ```
 
 **Comments**
@@ -120,6 +121,7 @@ ld_pred <- diff(log(pred_sa_ts))
 # plot all time series data
 plot(est_sa_ts, col='blue', main='Estimation Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
 plot(pred_sa_ts, col='blue', main='Prediction Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_ts, col='black', main='Log Difference of \nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
 plot(ld_est, col='blue', main='Estimation Log Difference Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
 plot(ld_pred, col='blue', main='Prediction Log Difference Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
 ```
@@ -133,6 +135,9 @@ plot(ld_pred, col='blue', main='Prediction Log Difference Set\nSeasonally Adjust
 
 ```{r}
 # plot all time series data - ACF
+acf(puget_ts, lag.max = 20, main='ACF Distribution')
+acf(puget_ts, lag.max = 20, plot = FALSE)
+
 acf(est_sa_ts, lag.max = 20, main='Estimation Set - ACF')
 acf(est_sa_ts, lag.max = 20, plot = FALSE)
 
@@ -161,6 +166,9 @@ acf(ld_pred, lag.max = 20, plot = FALSE)
 
 ```{r}
 # plot all time series data - PACF
+pacf(puget_ts, lag.max = 20, main='PACF Distribution')
+pacf(puget_ts, lag.max = 20, plot = FALSE)
+
 pacf(est_sa_ts, lag.max = 20, main='Estimation Set - PACF')
 pacf(est_sa_ts, lag.max = 20, plot = FALSE)
 
@@ -190,8 +198,8 @@ pacf(ld_pred, lag.max = 20, plot = FALSE)
 ggplot(puget, aes(YearMonth, puget_ts)) + 
   geom_line() + scale_x_date('Year') + 
   labs(y = "Seasonally Adjusted Index",
-       title = "Seasonally Adjusted index trends of:",
-       subtitle = "Seattle, Tacoma, and Bellevue") +
+       title = "Seasonally Adjusted housing index trends of:",
+       subtitle = "Seattle, Tacoma, and Bellevue, Washington") +
   theme_classic()
 ```
 
@@ -249,7 +257,7 @@ sa_ma <- ts(puget$Index_SA, frequency=12)
 
 decomp <- stl(sa_ma, s.window="periodic")  # additive model structure
 deseasonal_sa <- seasadj(decomp)  # remove seasonality
-plot(decomp)
+plot(decomp, main="Additive model structure")
 
 ```
 
