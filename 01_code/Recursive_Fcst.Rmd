@@ -102,32 +102,32 @@ autoplot(forecast(fcasts2[[1]]), xlim = c(2017, 2023)) +
 autoplot(forecast(fcasts3[[1]]), xlim = c(2017, 2023)) +
   autolayer(ld_pred, series = "Actuals")
 
-autoplot(forecast(fcasts4[[1]]), xlim = c(2017, 2023)) +
-  autolayer(forecast(fcasts4[[2]])) +
-  autolayer(forecast(fcasts4[[3]])) +
-  autolayer(forecast(fcasts4[[4]])) +
-  autolayer(forecast(fcasts4[[5]])) +
-  autolayer(forecast(fcasts4[[6]])) +
-  autolayer(forecast(fcasts4[[7]])) +
-  autolayer(forecast(fcasts4[[8]])) +
-  autolayer(forecast(fcasts4[[9]])) +
-  autolayer(forecast(fcasts4[[10]])) +
-  autolayer(forecast(fcasts4[[11]])) +
-  autolayer(forecast(fcasts4[[12]])) +
-  autolayer(forecast(fcasts4[[13]])) +
-  autolayer(forecast(fcasts4[[14]])) +
-  autolayer(forecast(fcasts4[[15]])) +
-  autolayer(forecast(fcasts4[[16]])) +
-  autolayer(forecast(fcasts4[[17]])) +
-  autolayer(forecast(fcasts4[[18]])) +
-  autolayer(forecast(fcasts4[[19]])) +
-  autolayer(forecast(fcasts4[[20]])) +
-  autolayer(forecast(fcasts4[[21]])) +
-  autolayer(forecast(fcasts4[[22]])) +
-  autolayer(forecast(fcasts4[[23]])) +
-  #autolayer(forecast(fcasts4[[24]])) +
-  #autolayer(forecast(fcasts[[25]])) +
-  autolayer(ld_pred, series = "Actuals")
+# autoplot(forecast(fcasts4[[1]]), xlim = c(2017, 2023)) +
+#   autolayer(forecast(fcasts4[[2]])) +
+#   autolayer(forecast(fcasts4[[3]])) +
+#   autolayer(forecast(fcasts4[[4]])) +
+#   autolayer(forecast(fcasts4[[5]])) +
+#   autolayer(forecast(fcasts4[[6]])) +
+#   autolayer(forecast(fcasts4[[7]])) +
+#   autolayer(forecast(fcasts4[[8]])) +
+#   autolayer(forecast(fcasts4[[9]])) +
+#   autolayer(forecast(fcasts4[[10]])) +
+#   autolayer(forecast(fcasts4[[11]])) +
+#   autolayer(forecast(fcasts4[[12]])) +
+#   autolayer(forecast(fcasts4[[13]])) +
+#   autolayer(forecast(fcasts4[[14]])) +
+#   autolayer(forecast(fcasts4[[15]])) +
+#   autolayer(forecast(fcasts4[[16]])) +
+#   autolayer(forecast(fcasts4[[17]])) +
+#   autolayer(forecast(fcasts4[[18]])) +
+#   autolayer(forecast(fcasts4[[19]])) +
+#   autolayer(forecast(fcasts4[[20]])) +
+#   autolayer(forecast(fcasts4[[21]])) +
+#   autolayer(forecast(fcasts4[[22]])) +
+#   autolayer(forecast(fcasts4[[23]])) +
+#   #autolayer(forecast(fcasts4[[24]])) +
+#   #autolayer(forecast(fcasts[[25]])) +
+#   autolayer(ld_pred, series = "Actuals")
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
