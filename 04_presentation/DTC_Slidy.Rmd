@@ -37,7 +37,7 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 Housing Data Plot
 =========================================
 
-- We identified three separate sections in the data to test our scheme models
+- We identified three separate sections in the data to test our scheme models ***Need to change this***
 
 <br>
 
