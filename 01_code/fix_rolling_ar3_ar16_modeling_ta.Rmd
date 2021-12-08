@@ -20,7 +20,7 @@ library(stats)
 ```{r}
 
 # loads csv into a base data frame
-base_housing_data <- read_csv("fmhpi_master_file.csv")
+base_housing_data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
 
 # the following code will filter the base data_housing_data building a data frame for only the Seattle-Tacoma-Bellevue WA area from 1975 to 2019. This "pre-covid" time frame ends in Dec 2019. While the WHO did not declare COVID-19 a pandemic until March 2020, the effect of the disease on work, employment, etc. was already manifesting in February (Changes to the following code per the Professor's guidance 11/18/21). 
 

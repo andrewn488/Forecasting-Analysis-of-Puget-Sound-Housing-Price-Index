@@ -7,7 +7,11 @@ output:
 ---
 
  
+<<<<<<< HEAD
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+=======
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
 library(tidyverse) # For transforming and tidying the data
 library(dynlm) # For time series/dynamic regression models
 library(forecast) # For ACF/PACF and ggACF/ggPACF
@@ -45,6 +49,7 @@ index_sa_ts <- ts(wip_puget_precovid_data$Index_SA, frequency = 12, start = c(19
 
 Introduction
 =======================================
+<div style="float: left; width: 50%;">
 
 + Forecasting Housing Prices
 
@@ -55,7 +60,10 @@ Introduction
 
 - How did the pandemic impact the behavior of the housing price index and what is the appropriate scheme (fixed, recursive, or rolling) that will help us best forecast the housing price index values after the pandemic?
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
 </div>
 <div style="float: right; width: 50%;">
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
@@ -64,27 +72,29 @@ plot(index_sa_ts, main = 'Freddie Mac Seasonally Adjusted Housing Price Index
      2011 - 2019 ', ylab = 'Housing Index', xlab = 'Year', col = 'blue')
 ```
 </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
 
 Data Description
 =========================================
-- We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddiemac.com/research/indices/house-price-index.page.
+
+We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddiemac.com/research/indices/house-price-index.page.
 
 - The FMHPI provides a measure of typical price inflation for houses within the United States.
 - Values are calculated monthly and released at the end of the following month.
 - The data includes seasonally and non-seasonally adjusted series which are available at three different geographical levels (metropolitan, state, and national).
 - The data set includes each month from January 1975 onward.
 
-
-Housing Data Plot
+Housing Data
 =========================================
-- We plotted the seasonally adjusted housing index trends of our data as a timeseries
-  - Steady increase in the index from 1975 up to 2008 (which marks the beginning of the housing bubble burst)
-  - Decreases until about 2012
-  - Dramatic increases to the present.
-<br>
+<div style="float: left; width: 50%;">
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
 - Initial Index Data not Stationary 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
 
@@ -113,7 +123,21 @@ text(1978, .0040, "Mean", cex = .4, col = 'black')
 - The Augmented Dickey-Fuller Test
   + Critical Value @ 5%: -2.87 w/o Trend | -2.41 w/ Trend
   + ADF: -3.2757
+  + Reject the null hypothesis; conclude that the log/diff is stationary
     
+</div>
+
+Simple Moving Average
+==============================
+- Simple 3 month moving average
+  + Rolling averages inherently lag behind trends
+  + Consistent under-forecasting during pandemic
+  + Prone to overstating impacts of sudden shocks
+  
+<br>
+
+![](../03_visuals/3_mo_avg.png){width=700px height=432px}
+
 </div>
 
 Model Selection
@@ -122,7 +146,9 @@ Model Selection
 
 - Elected to start with an AR(3) and AR(16) Model
 
-```{r echo=FALSE, fig.height=2, fig.width=3, message=FALSE, warning=FALSE, }
+<br>
+
+```{r echo=FALSE, fig.height=3, fig.width=4, message=FALSE, warning=FALSE, }
 # The following builds the acf and pacf plots for the stationary time series plots.
 
 ggAcf(log_diff_sa_ts) +
@@ -145,7 +171,7 @@ ggPacf(log_diff_sa_ts) +
   + All value statically significant
   + Adjusted R^2^ = .86
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=2, fig.width=3, results = 'hide'}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4, results = 'hide'}
 ar_3_model <-  dynlm(log_diff_sa_ts ~ 
                     stats::lag(log_diff_sa_ts, -1) +
                     # Used stats::lag because dplyr has a lag function 
@@ -157,7 +183,7 @@ ar_3_model <-  dynlm(log_diff_sa_ts ~
 summary(ar_3_model)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=2, fig.width=3}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4}
 ar_3_model_resid <- resid(ar_3_model)
 
 ggAcf(ar_3_model_resid) +
@@ -181,7 +207,7 @@ ggPacf(ar_3_model_resid) +
   + All value statically significant
   + Adjusted R^2^ = .90
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=2, fig.width=3}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4}
 ar_16_model <- dynlm(log_diff_sa_ts ~
                             stats::lag(log_diff_sa_ts, -1) +
                         # Used stats::lag because dplyr has a lag function 
@@ -213,9 +239,8 @@ ggPacf(ar_16_model_resid) +
 ```
 
 </div>
-=======
-![](NSA-graph.png){width=300px height=300px}
 
+<<<<<<< HEAD
 Stationary Data
 =========================================
 - We applied the log difference 
@@ -244,6 +269,9 @@ PACF & Dickey-Fuller
 
 
 Models
+=======
+Forecasting Models
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
 =========================================
 <div style="float: left; width: 50%;">
 
@@ -251,6 +279,7 @@ Models
   + Assessed Fixed, Recursive, and Rolling
   + **Surprising** Fixed and Recursive gave same values
   + Recursive had smaller errors
+  + Recursive AR(3) forecast in bottom right shows fit to actuals
   
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 wip_puget_housing_obs <- filter(base_housing_data, GEO_Name == 
@@ -413,13 +442,17 @@ lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
 ```
 
 </div>
-<div style="float: left; width: 40%;">
-
+<div style="float: left; width: 25%;">
+- Rolling Scheme
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 kbl(accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)) %>%   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+- Recursive Scheme
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 kbl(accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
+<<<<<<< HEAD
 
 =======
 - PACF has a significant drop off at lag 3 we decided to use an AR(3) model
@@ -441,7 +474,12 @@ Forecasts
 
 
 ![](../03_visuals/AR_comparisons.png){width=600px height=450px}
+=======
+![](../03_visuals/AR(3) Recursive Scheme.png){width=700px height=432px}
 
+>>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
+</div>
 
 Loss Function and Assessing Forecasts
 =========================================
@@ -450,14 +488,25 @@ Loss Function and Assessing Forecasts
   - Errors in predicting the house price index both in over predicting and under predicting do have similar consequences as the main parties impacted are either buyers or sellers and the trade-off in an estimation error in either direction proportionately impact both parties the same
   - We determined that there is a not a clear loss in either scenario as a gain for one party is a loss for another and vice-versa.
 
+</div>
 
-Conclusions
+Conclusions and next steps
 =========================================
 
 + AR(3) model
-  - We completed a recursive, fixed, and rolling scheme. The fixed and rolling schemes are consistent with each other and the recursive model provided a forecast width of 0.1 in the index. We also used the fixed and rolling schemes in the
+  - We completed a recursive, fixed, and rolling scheme. The fixed and rolling schemes are consistent with each other and the recursive model provided a forecast width of 0.1 in the index.
 
 + AR(16) model
   - We completed a recursive, fixed, and rolling scheme and noted that those schemes also provide similar forecasts.
   - Behavior of lags 11-16 better mirror the 2020 -2021 behavior than the simpler lag 3 model (whose growth during the last 3 months of 2019 was significantly lower than previous lags).
   - Including these additional lags refined the model by including the type of index behavior one could expect during a “hot” market time frame that is not captured in the simpler, short term, lag 3 model
+
++ Both AR(3) and AR(16) models are statistically significant models, but the latter better captures the volatility
+of the housing prices in Puget sound during the pandemic.
+  - Recursive and rolling schemes are more representative than a fixed scheme
+
++ Future Research Opportunities
+  - Investigate deterministic trends in the data
+  - Reassess models in 12-24 months to determine if changing conditions impacts model
+
+
