@@ -52,15 +52,15 @@ puget %>%
                               fill = 0)) %>%
   ggplot(aes(x=YearMonth,
              y=Index_SA)) +
-  geom_line(aes(color = 'Actuals'),
+  geom_line(aes(color = '3 mo Avg'),
             size = .75) +
   geom_line(aes(y = three_avg,
-            color = '3 mo Avg'),
+            color = 'Actuals0'),
             size = .75) +
   labs(title = "SA House Price Index - Puget Sound") +
   xlim(a, b) +
   ylim(200, 320) +
-  scale_color_manual(name = 'Series', values = c('Actuals' = 'blue', '3 mo Avg' = 'red'))
+  scale_color_manual(name = 'Series', values = c('Actuals' = 'red', '3 mo Avg' = 'blue'))
 
 ```
 
