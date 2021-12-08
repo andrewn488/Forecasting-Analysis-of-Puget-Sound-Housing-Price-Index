@@ -84,6 +84,7 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 - The FMHPI provides a measure of typical price inflation for houses within the United States.
 - Values are calculated monthly and released at the end of the following month.
 - The data includes seasonally and non-seasonally adjusted series which are available at three different geographical levels (metropolitan, state, and national).
+- This analysis focuses on the Seattle-Bellevue-Tacoma metroplex
 - The data set includes each month from January 1975 onward.
 
 Housing Data
