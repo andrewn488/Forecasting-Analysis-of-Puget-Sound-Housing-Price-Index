@@ -44,7 +44,6 @@ wip_puget_precovid_data <- base_puget_precovid_data %>%
 index_sa_ts <- ts(wip_puget_precovid_data$Index_SA, frequency = 12, start = c(1975))
 ```
 
-</div>
 
 Introduction
 =======================================
@@ -61,7 +60,7 @@ Introduction
 
 
 
-=======
+
 
 </div>
 <div style="float: right; width: 50%;">
@@ -72,8 +71,6 @@ plot(index_sa_ts, main = 'Freddie Mac Seasonally Adjusted Housing Price Index
 ```
 </div>
 
-
-=======
 
 
 Data Description
@@ -90,10 +87,6 @@ We used the Freddie Mac House Price Index (FMPHI) available at http://www.freddi
 Housing Data
 =========================================
 <div style="float: left; width: 50%;">
-
-<<<<<<< HEAD
-
-=======
 
 - Initial Index Data not Stationary 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
@@ -164,6 +157,7 @@ ggPacf(log_diff_sa_ts) +
   labs(y = ' ') 
   
 ```
+
 </div>
 <div style="float: left; width: 30%;">
 
@@ -267,12 +261,23 @@ PACF & Dickey-Fuller
 
 ![](../03_visuals/PACF_all_data.png){width=500px height=375px}
 
+- PACF has a significant drop off at lag 3 we decided to use an AR(3) model
+- Also considered an AR(16) model but assumed that model would most likely be a case of over fitting
+  - The spikes at lags 6 and 9 are not overly significant and were considered random variation
+
+<br> 
+
+![](Screen Shot 2021-11-28 at 6.09.10 PM.png){width=400px height=400px}
+
+<br>
+
+![](Screen Shot 2021-11-28 at 6.09.15 PM.png){width=400px height=400px}
 
 Models
-=======
+=========================================
+
 Forecasting Models
 
-=========================================
 <div style="float: left; width: 50%;">
 
 - Schemes and Forecast
@@ -443,40 +448,32 @@ lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
 
 </div>
 <div style="float: left; width: 25%;">
+
 - Rolling Scheme
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 kbl(accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)) %>%   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
+
 - Recursive Scheme
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 kbl(accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-
-
-=======
-- PACF has a significant drop off at lag 3 we decided to use an AR(3) model
-- Also considered an AR(16) model but assumed that model would most likely be a case of over fitting
-  - The spikes at lags 6 and 9 are not overly significant and were considered random variation
->>>>>>> 38a3ffdce434cabbc6945083fdaf141dce9e5961
-
-![](Screen Shot 2021-11-28 at 6.09.10 PM.png){width=400px height=400px}
-![](Screen Shot 2021-11-28 at 6.09.15 PM.png){width=400px height=400px}
+</div>
 
 Forecasts
 =========================================
+<div style="float: left; width: 50%;">
 
 - Used fixed, recursive, and rolling schemes
 
-
-=======
 <br>
 
-
 ![](../03_visuals/AR_comparisons.png){width=600px height=450px}
-=======
-![](../03_visuals/AR(3) Recursive Scheme.png){width=700px height=432px}
 
+<br> 
+
+![](../03_visuals/AR(3) Recursive Scheme.png){width=700px height=432px}
 
 
 </div>
