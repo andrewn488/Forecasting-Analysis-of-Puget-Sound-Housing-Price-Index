@@ -1,6 +1,6 @@
 ---
 title: "Recursive Model AR(3)"
-author: "Jonathan Burns"
+author: "Jonathan Burns et al"
 date: "11/23/2021"
 output: html_document
 ---
@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(forecast)
+library(tidyverse)
+library(zoo)
 ```
 
 
@@ -18,12 +20,59 @@ fcasts <- vector(mode = "list", length = 24L)
 for (i in 1:24) {# start recursive estimator
   log_diff = window(ld_puget, end = c(start - 1, 11 + i))
   #fit <- auto.arima(log_diff)
+  #force non-seaonal model
+  #fit <- arima(log_diff, order = c(0,1,4))
   fit <- arima(log_diff, order = c(3,0,0))
   fcasts[[i]] <- forecast(fit, h = 1)
   
 }
 # create 12 month forecast at end of series
-fcasts[[25]] <- forecast(fit, h = 11)
+fcasts[[24]] <- forecast(fit, h = 12)
+
+# create 36 month forecast based on first model month = 1
+fcasts2 <- vector(mode = "list", length = 36)
+log_diff = window(ld_puget, end=c(start-1, 12))
+#fit2 <- auto.arima(log_diff)
+fit2 <- arima(log_diff, order = c(16,0,0))
+fcasts2[[1]] <- forecast(fit2, h = 36)
+
+# create 24 month forecast based on first model month = 12
+fcasts3 <- vector(mode = "list", length = 24)
+log_diff = window(ld_puget, end=c(start, 12))
+#fit3 <- auto.arima(log_diff)
+fit3 <- arima(log_diff, order = c(16,0,0))
+fcasts3[[1]] <- forecast(fit3, h = 24)
+
+# create simple rolling 3 month avg
+a <- as.Date("2017-01-01")
+b <- as.Date("2022-01-01")
+puget %>%
+  mutate(three_avg = rollmean(Index_SA, 3,
+                              align = 'left',
+                              fill = 0)) %>%
+  ggplot(aes(x=YearMonth,
+             y=Index_SA)) +
+  geom_line(aes(color = 'Actuals'),
+            size = .75) +
+  geom_line(aes(y = three_avg,
+            color = '3 mo Avg'),
+            size = .75) +
+  labs(title = "SA House Price Index - Puget Sound") +
+  xlim(a, b) +
+  ylim(200, 320) +
+  scale_color_manual(name = 'Series', values = c('Actuals' = 'blue', '3 mo Avg' = 'red'))
+
+# AR(16) model for full recursive view
+fcasts4 <- vector(mode = "list", length = 24L)
+for (i in 1:24) {# start recursive estimator
+  log_diff = window(ld_puget, end = c(start - 1, 11 + i))
+  fit4 <- arima(log_diff, order = c(16,0,0))
+  fcasts4[[i]] <- forecast(fit4, h = 1)
+  
+}
+# create 12 month forecast at end of series
+fcasts4[[24]] <- forecast(fit4, h = 12)
+
 ```
 
 ## Including Plots
@@ -55,9 +104,41 @@ autoplot(forecast(fcasts[[1]]), xlim = c(2017, 2023)) +
   autolayer(forecast(fcasts[[22]])) +
   autolayer(forecast(fcasts[[23]])) +
   autolayer(forecast(fcasts[[24]])) +
-  autolayer(forecast(fcasts[[25]])) +
+  #autolayer(forecast(fcasts[[25]])) +
   autolayer(ld_pred, series = "Actuals")
 
+autoplot(forecast(fcasts2[[1]]), xlim = c(2017, 2023)) +
+  autolayer(ld_pred, series = "Actuals")
+
+autoplot(forecast(fcasts3[[1]]), xlim = c(2017, 2023)) +
+  autolayer(ld_pred, series = "Actuals")
+
+autoplot(forecast(fcasts4[[1]]), xlim = c(2017, 2023)) +
+  autolayer(forecast(fcasts4[[2]])) +
+  autolayer(forecast(fcasts4[[3]])) +
+  autolayer(forecast(fcasts4[[4]])) +
+  autolayer(forecast(fcasts4[[5]])) +
+  autolayer(forecast(fcasts4[[6]])) +
+  autolayer(forecast(fcasts4[[7]])) +
+  autolayer(forecast(fcasts4[[8]])) +
+  autolayer(forecast(fcasts4[[9]])) +
+  autolayer(forecast(fcasts4[[10]])) +
+  autolayer(forecast(fcasts4[[11]])) +
+  autolayer(forecast(fcasts4[[12]])) +
+  autolayer(forecast(fcasts4[[13]])) +
+  autolayer(forecast(fcasts4[[14]])) +
+  autolayer(forecast(fcasts4[[15]])) +
+  autolayer(forecast(fcasts4[[16]])) +
+  autolayer(forecast(fcasts4[[17]])) +
+  autolayer(forecast(fcasts4[[18]])) +
+  autolayer(forecast(fcasts4[[19]])) +
+  autolayer(forecast(fcasts4[[20]])) +
+  autolayer(forecast(fcasts4[[21]])) +
+  autolayer(forecast(fcasts4[[22]])) +
+  autolayer(forecast(fcasts4[[23]])) +
+  autolayer(forecast(fcasts4[[24]])) +
+  #autolayer(forecast(fcasts[[25]])) +
+  autolayer(ld_pred, series = "Actuals")
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

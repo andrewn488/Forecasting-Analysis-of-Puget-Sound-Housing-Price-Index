@@ -50,190 +50,170 @@ For our forecasting analysis we split the data into 3 sections based on the chan
 
 <br>
 
-![](NSA-graph.png){width=500px height=500px}
+![](../04_presentation/NSA-graph.png){width=500px height=500px}
 
-# Read in data and wrangle (OLD, prior to meeting with Prof 11/18/2021)
-
-```{r}
-# read in data
-data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
-
-# look at the data
-head(data, 10)
-```
-
-
-```{r}
-# filter for target GEO
-puget <- data %>% 
-  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
-
-puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
-
-puget_nsa <- puget[, c('YearMonth', 'Index_NSA')] %>% 
-  filter(YearMonth >= '2011-01-01')
-
-puget_sa <- puget[, c('YearMonth', 'Index_SA')] %>% 
-  filter(YearMonth >= '2011-01-01')
-
-# declare as TS
-puget_nsa_ts <- ts(puget$Index_NSA, frequency=12, start=1975)  # monthly data
-
-puget_sa_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
-```
+# Fetch Data
 
 + Data wrangling: 
 
     + filter geography for 'Seattle-Tacoma-Bellevue WA'
     + create new column for 'YearMonth' concatenating to be %Y-%m-%d format
-    + filter dataset to be dates from 2011-present for research question 1
-
-# Research Question 1: Forecasting from 2011-present (OLD, prior to meeting with Prof 11/18/2021)
-
-```{r}
-# plot TS
-plot(puget_nsa, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
-
-plot(puget_sa, col='blue', main='Seattle, Tacoma, Bellevue\nNon-Seasonally Adjusted index trends', ylab='Seasonally Adjusted Index', xlab='Year')
-
-# plot histogram
-hist(puget_nsa_ts)
-hist(puget_sa_ts)
-```
-
-**Comments**
-
-+ Need to take difference to achieve stationarity
-
-```{r}
-
-# log difference of puget
-ld_puget_nsa <- diff(log(puget_nsa_ts))
-ld_puget_sa <- diff(log(puget_sa_ts))
-
-# plot the logged difference datasets
-plot(ld_puget_nsa, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_NSA trends', ylab='Non-Seasonally Adjusted Index', xlab='Year')
-
-plot(ld_puget_sa, col='blue', main='Seattle, Tacoma, Bellevue\nLog Difference Index_SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
-
-# create linear regression for time series data
-# model1 <- dynlm(dp ~ lag(dp, -1) + lag(dr, -1))
-```
-
-**Comments**
-
-+ After taking the log difference from the TS, does this yield a stationary trend?
-
-    + This looks stationary but need to verify
+    + focus on Index_SA data (Seasonally Adjusted)
+    + declare as Time Series
     
-+ What does this tell us?
+## Read in data and wrangle
 
-```{r Plot ACF}
-# auto correlation function
-# 20 lags
-acf(puget_nsa_ts, lag.max = 20, main='Puget NSA TS - ACF')
-acf(puget_sa_ts, lag.max = 20, main='Puget SA TS - ACF')
+```{r fetch_data}
+# read in data
+data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
 
-# see values only and no plot
-acf(puget_nsa_ts, lag.max = 20, plot = FALSE)
-acf(puget_sa_ts, lag.max = 20, plot = FALSE)
+# filter for target GEO
+puget <- data %>% 
+  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+
+# add YearMonth column
+puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
+
+# pull columns from dataset we need for forecasting
+puget <- puget[, c('YearMonth', 'Index_SA')]
+
+# look at our data
+head(puget, 10)
+
+# declare as ts
+puget_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
 ```
-
-**Comments**
-
-+ How many lags should we be running?
-+ Arbitrarily chose 20 lags
-+ Plot never falls below statistically significant threshold in 20 lags
-
-    + PACF will likely fall below threshold before ACF
-
-```{r Plot PACF}
-# PACF
-pacf(puget_nsa_ts, lag.max = 20, main='Puget NSA TS - PACF')
-pacf(puget_sa_ts, lag.max = 20, main='Puget SA TS - PACF')
-
-# values only
-pacf(puget_nsa_ts, lag.max = 20, plot = FALSE)
-pacf(puget_sa_ts, lag.max = 20, plot = FALSE)
-```
-
-**Comments**
-
-+ PACF falls below statistically significant threshold at lag 2
-
-    + This indicates that we are working with an Auto Regressive (AR) process
-
-**Questions**
-
-+ How many lags should we be running?
-    
-    + Arbitrarily chose 20 lags
-    
-+ Does this indicate an ARIMA or ARMA model moving forward?
-+ How do we determine what order of AR we are working with?
-
-    + Perhaps once we determine a model?
 
 
 ```{r}
-# log difference of ACF and PACF
-# log difference ACF
-acf(ld_puget_nsa, lag.max = 20, main = 'log diff Puget Sound Index_NSA - ACF')
-acf(ld_puget_sa, lag.max = 20, main = 'log diff Puget Sound Index_SA - ACF')
+# estimation and prediction ts
+# estimation set
+est_sa <- puget %>% 
+  filter(YearMonth < '2020-01-01')
+
+# estimation ts
+est_sa_ts <- ts(est_sa$Index_SA, frequency=12, start=1975)  # monthly data
+
+# prediction set
+pred_sa <- puget %>% 
+  filter(YearMonth >= '2020-01-01')
+
+# prediction ts
+pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
 
 ```
 
++ Break into estimation set and prediction set
+
+```{r}
+# logged differences
+
+# log difference of estimation and prediction timeseries
+ld_ts <- diff(log(puget_ts))  # log difference of entire dataset
+ld_est <- diff(log(est_sa_ts))  # log difference of estimation set
+ld_pred <- diff(log(pred_sa_ts))  # log difference of prediction set
+```
+
+**Comments**
++ need to take the log difference of estimation set and prediction set
+
+```{r}
+# plot all time series data
+plot(est_sa_ts, col='blue', main='Estimation Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(pred_sa_ts, col='blue', main='Prediction Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_ts, col='black', main='Log Difference of \nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_est, col='blue', main='Estimation Log Difference Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+plot(ld_pred, col='blue', main='Prediction Log Difference Set\nSeasonally Adjusted trends', ylab='Seasonally Adjusted Index', xlab='Year')
+```
+
++ Plots included for: 
+
+    1. Estimation set
+    2. Prediction set
+    3. log difference estimation set
+    4. log difference prediction set
+
+```{r}
+# plot all time series data - ACF
+acf(puget_ts, lag.max = 20, main='ACF Distribution')
+acf(puget_ts, lag.max = 20, plot = FALSE)
+
+acf(est_sa_ts, lag.max = 20, main='Estimation Set - ACF')
+acf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(pred_sa_ts, lag.max = 20, main='Prediction Set - ACF')
+acf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+acf(ld_est, lag.max = 20, main='Estimation Log Difference Set - ACF')
+acf(ld_est, lag.max = 20, plot = FALSE)
+
+acf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - ACF')
+acf(ld_pred, lag.max = 20, plot = FALSE)
+```
+
+
 **Comments**
 
-+ Coefficients don't drop below significance level until lag 5 
-+ Looks like a sinusoidal wave
++ Estimation Set ACF - coefficients never drop below significance threshold
++ Prediction Set ACF - Looks like a sinusoidal wave
+
+    + spike drops below significance threshold at lag 6
+    
++ Log difference Estimation Set ACF - geometric decay in spikes but never dips below significance threshold
++ Log difference Prediction Set ACF - drops below significance threshold at lag 3
+    
 + Need to plot PACF logged difference 
 
 ```{r}
-# log difference PACF
-pacf(ld_puget_nsa, lag.max = 20, main = 'log diff Puget Sound Index_NSA - PACF')
-pacf(ld_puget_sa, lag.max = 20, main = 'log diff Puget Sound Index_SA - PACF')
+# plot all time series data - PACF
+pacf(puget_ts, lag.max = 20, main='PACF Distribution')
+pacf(puget_ts, lag.max = 20, plot = FALSE)
+
+pacf(est_sa_ts, lag.max = 20, main='Estimation Set - PACF')
+pacf(est_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(pred_sa_ts, lag.max = 20, main='Prediction Set - PACF')
+pacf(pred_sa_ts, lag.max = 20, plot = FALSE)
+
+pacf(ld_est, lag.max = 20, main='Estimation Log Difference Set - PACF')
+pacf(ld_est, lag.max = 20, plot = FALSE)
+
+pacf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - PACF')
+pacf(ld_pred, lag.max = 20, plot = FALSE)
 ```
 
 **Comments**
 
-+ Oscillating coefficients indicate a negative number somewhere in the model or something like that
-+ PACF drops below significance threshold at lag 5
++ Log Difference PACFs - oscillating coefficients indicate a negative number somewhere in the model
++ PACF drops below significance threshold at lag 2
     
-    + Logged difference PACF indicates an AR process as well
-    + Is this enough evidence to confirm AR process?
-    + How can we verify via calculations?
-    
-**Questions** 
+    + Logged difference PACF indicates an AR(4) process
 
-+ These tests are just visual tests. How do we determine AR vs. MA process computationally?
+# Data Exploration
 
-## Following ARIMA fitting guide using ggplot
+## Examine Data
 
-### Examine Data
 ```{r}
-# plot using ggplot just for fun
-ggplot(puget, aes(YearMonth, Index_NSA)) + 
+# plot using ggplot
+ggplot(puget, aes(YearMonth, puget_ts)) + 
   geom_line() + scale_x_date('Year') + 
-  labs(y = "Non-Seasonally Adjusted Index",
-       title = "Seattle, Tacoma, Bellevue",
-       subtitle = "Non-Seasonally Adjusted index trends") +
+  labs(y = "Seasonally Adjusted Index",
+       title = "Seasonally Adjusted housing index trends of:",
+       subtitle = "Seattle, Tacoma, and Bellevue, Washington") +
   theme_classic()
 ```
 
 **Comments**
-
-+ ggplot plot looks exactly the same as using Base R but with more flexibility to add components
-+ ggplot needs a DF rather than a TS to create plot
++ ggplot plot looks exactly the same as using Base R but with more flexibility to add layers
 
 ```{r}
 
 # try cleaning the data
-puget_ts <- ts(puget[, c('Index_NSA')])
-puget$clean_index_nsa <- tsclean(puget_ts)
+puget_ts <- ts(puget[, c('Index_SA')])
+puget$clean_index_sa <- tsclean(puget_ts)
 
 ggplot() + 
-  geom_line(data = puget, aes(x = YearMonth, y = clean_index_nsa)) + ylab('Cleaned Index NSA')
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_sa)) + ylab('Cleaned Index SA')
 ```
 
 **Comments**
@@ -244,18 +224,18 @@ ggplot() +
 ```{r}
 # plot the cleaned series
 # get MA(4) - quarterly MA
-puget$nsa_ma04 = ma(puget$clean_index_nsa, order=4) # using the clean count with no outliers, get the MA
+puget$sa_ma04 = ma(puget$clean_index_sa, order=4) # using the clean count with no outliers, get the MA
 
 # get MA(12) - yearly MA
-puget$nsa_ma12 = ma(puget$clean_index_nsa, order=12) # MA(12)
+puget$sa_ma12 = ma(puget$clean_index_sa, order=12) # MA(12)
 
 ggplot() + 
-  geom_line(data = puget, aes(x = YearMonth, y = clean_index_nsa, colour = "Raw Data")) +
-  geom_line(data = puget, aes(x = YearMonth, y = nsa_ma04,   colour = "Quarterly Moving Average"))  +
-  geom_line(data = puget, aes(x = YearMonth, y = nsa_ma12, colour = "Yearly Moving Average"))  +
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_sa, colour = "Raw Data")) +
+  geom_line(data = puget, aes(x = YearMonth, y = sa_ma04,   colour = "Quarterly Moving Average"))  +
+  geom_line(data = puget, aes(x = YearMonth, y = sa_ma12, colour = "Yearly Moving Average"))  +
   labs(x = "Year", 
-       y = "NSA Index",
-       title = "Monthly MA vs. Weekly MA") + 
+       y = "SA Index",
+       title = "Quarterly MA vs. Yearly MA") + 
   theme_classic()
 ```
 
@@ -264,7 +244,7 @@ ggplot() +
 + yearly MA appears to be a slightly smoother fit to our raw data plot
 + quarterly MA follows along almost spot on
 
-### Decompose Data
+## Decompose Data
 
 + Seasonality, Trend, Cycle to capture historical patterns in the series
 + Seasonality - fluctuations in the data related to calendar cycles
@@ -273,11 +253,11 @@ ggplot() +
 
 ```{r}
 # Seasonality
-nsa_ma <- ts(puget$Index_NSA, frequency=12)
+sa_ma <- ts(puget$Index_SA, frequency=12)
 
-decomp <- stl(nsa_ma, s.window="periodic")  # additive model structure
-deseasonal_nsa <- seasadj(decomp)  # remove seasonality
-plot(decomp)
+decomp <- stl(sa_ma, s.window="periodic")  # additive model structure
+deseasonal_sa <- seasadj(decomp)  # remove seasonality
+plot(decomp, main="Additive model structure")
 
 ```
 
@@ -287,11 +267,11 @@ plot(decomp)
 + why is time not in my time window?
 + definitely trending upwards
 
-### Stationarity
+## Stationarity
 
 ```{r}
 # run ADF test
-adf.test(nsa_ma, alternative = "stationary")
+adf.test(sa_ma, alternative = "stationary")
 ```
 
 **Comments**
@@ -303,15 +283,62 @@ adf.test(nsa_ma, alternative = "stationary")
 
 ```{r}
 # plot ACF
-Acf(nsa_ma, main='ACF')
+Acf(sa_ma, main='ACF')
 
 # plot PACF
-Pacf(nsa_ma, main='PACF')
+Pacf(sa_ma, main='PACF')
 ```
 
 ```{r}
+
+model <- lm(sa_ma ~ poly(puget_ts, 12, raw=TRUE))  # y=b0+b1*t+b2*t^2+b3*t^31+b4*t^4+WN
+summary(model)
+
+# smaller the better
+AIC(model)  # AIC
+## [1] -32495.4
+BIC(model)  # BIC
+## [1] -32434.79
+```
+
+```{r}
+#plot debt w/o y-axis title, dashed
+plot.ts(puget_ts, ylab="", lty=2) 
+
+# declare fit as quarterly time series
+fit <- ts(fitted(model), frequency = 12, start=c(1975, 1)) 
+
+# declare res as quarterly time series
+res <- ts(resid(model), frequency = 12, start=c(1975, 1)) 
+
+# also plot fit in red color
+lines(fit, col="red", lty=2) 
+
+# following series will be graphed on the existing plot
+par(new=TRUE) 
+
+# plot residuals w/o y-axis title, in blue color
+plot.ts(res, axes=FALSE, ylab="", col="blue") 
+
+# add the right y-axis for residuals
+axis(side=4, at = pretty(range(res))) 
+
+# legend, debt and fit will be dashed 
+legend("topleft", legend=c("Actual", "Fit", "Res"), lty=c(2,2,1), col=c("black", "red", "blue")) 
+```
+
+```{r}
+# ACF of residuals of the 4th order polynomial trend model
+acf(res)
+
+# PACF of residuals of the 4th order polynomial trend model
+pacf(res) 
+```
+
+
+```{r}
 # calculate differences
-count_d1 = diff(deseasonal_nsa, differences = 1)
+count_d1 = diff(deseasonal_sa, differences = 1)
 plot(count_d1)
 adf.test(count_d1, alternative = "stationary")
 ```
@@ -343,11 +370,11 @@ Pacf(count_d1, main='PACF for Differenced Series')
     + spike passes significance threshold at lag 4
     + distribution is somewhat oscilating
 
-### Fitting an ARIMA model
+## Fitting an ARIMA model
 
 ```{r}
 # Fit the ARIMA model
-auto.arima(deseasonal_nsa, seasonal=FALSE)
+auto.arima(deseasonal_sa, seasonal=FALSE)
 ```
 
 **Comments**
@@ -360,11 +387,11 @@ auto.arima(deseasonal_nsa, seasonal=FALSE)
     + y_hat = 0.7689e_t-1 -0.2475e_t-2 - 0.4647e_t-3 + E
     
 
-### Evaluate and Iterate
+## Evaluate and Iterate
 
 ```{r}
 # get a fit
-fit <- auto.arima(deseasonal_nsa, seasonal=FALSE)
+fit <- auto.arima(deseasonal_sa, seasonal=FALSE)
 
 # plot the data
 tsdisplay(residuals(fit), lag.max=45, main='(0,2,3) Model Residuals')
@@ -380,7 +407,7 @@ tsdisplay(residuals(fit), lag.max=45, main='(0,2,3) Model Residuals')
     
 ```{r}
 # iterate our model using a different fit
-fit2 = arima(deseasonal_nsa, order=c(1,1,1))
+fit2 = arima(deseasonal_sa, order=c(1,1,1))
 fit2
 tsdisplay(residuals(fit2), lag.max=15, main='Seasonal Model Residuals')
 ```
@@ -391,8 +418,8 @@ tsdisplay(residuals(fit2), lag.max=15, main='Seasonal Model Residuals')
 
 ```{r}
 # try a forecast
-fcast <- forecast(fit2, h=10)  # set horizon periods to 10. Does this indicate 10 years ahead?
-plot(fcast, ylab = "Index_NSA")
+fcast <- forecast(fit2, h=36)  # set horizon periods to 36. Does this indicate 36 months ahead?
+plot(fcast, ylab = "Index_SA")
 ```
 
 **Comments**
@@ -401,11 +428,11 @@ plot(fcast, ylab = "Index_NSA")
 
 ```{r}
 # forecast model future performance
-hold <- window(ts(deseasonal_nsa))  # should start be used here?
-fit_no_holdout = arima(ts(deseasonal_nsa))  # should order be specified here?
+hold <- window(ts(deseasonal_sa))  # should start be used here?
+fit_no_holdout = arima(ts(deseasonal_sa))  # should order be specified here?
 fcast_no_holdout <- forecast(fit_no_holdout, h=25)
 plot(fcast_no_holdout, main="Forecast of performance for future model")
-lines(ts(deseasonal_nsa))
+lines(ts(deseasonal_sa))
 
 ```
 
@@ -415,115 +442,16 @@ lines(ts(deseasonal_nsa))
 
 ```{r}
 # add seasonality back into our model
-fit_w_seasonality = auto.arima(deseasonal_nsa, seasonal=TRUE)
+fit_w_seasonality = auto.arima(deseasonal_sa, seasonal=TRUE)
 fit_w_seasonality
 ```
 
 **Comments**
 
 + This yields an ARIMA(0, 2, 3) process
-+ AIC = 171.79
-+ BIC = 182.84
++ AIC = 149.95
++ BIC = 184.56
 + Are AIC and BIC low enough to be effective?
-
-
-
-
-
-
-# Fetch Data
-
-## Read in data and wrangle
-
-```{r fetch_data}
-# read in data
-data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
-
-# filter for target GEO
-puget <- data %>% 
-  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
-
-# add YearMonth column
-puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
-
-# pull columns from dataset we need for forecasting
-puget <- puget[, c('YearMonth', 'Index_SA')]
-
-# look at our data
-head(puget, 10)
-
-# declare as ts
-puget_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
-```
-
-```{r}
-# estimation and prediction ts
-# estimation set
-est_sa <- puget %>% 
-  filter(YearMonth < '2020-01-01')
-
-# estimation ts
-est_sa_ts <- ts(est_sa$Index_SA, frequency=12, start=1975)  # monthly data
-
-# prediction set
-pred_sa <- puget %>% 
-  filter(YearMonth >= '2020-01-01')
-
-# prediction ts
-pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
-
-```
-
-```{r}
-# logged differences
-
-# log difference of estimation and prediction timeseries
-ld_est <- diff(log(est_sa_ts))
-ld_pred <- diff(log(pred_sa_ts))
-```
-
-
-```{r}
-# plot all time series data
-plot(est_sa_ts, col='blue', main='Estimation SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
-plot(pred_sa_ts, col='blue', main='Prediction SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
-plot(ld_est, col='blue', main='Estimation Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
-plot(ld_pred, col='blue', main='Prediction Log Difference SA trends', ylab='Seasonally Adjusted Index', xlab='Year')
-```
-
-
-```{r}
-# plot all time series data - ACF
-acf(est_sa_ts, lag.max = 20, main='Estimation Set - ACF')
-acf(est_sa_ts, lag.max = 20, plot = FALSE)
-
-acf(pred_sa_ts, lag.max = 20, main='Prediction Set - ACF')
-acf(pred_sa_ts, lag.max = 20, plot = FALSE)
-
-acf(ld_est, lag.max = 20, main='Estimation Log Difference Set - ACF')
-acf(ld_est, lag.max = 20, plot = FALSE)
-
-acf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - ACF')
-acf(ld_pred, lag.max = 20, plot = FALSE)
-```
-
-
-```{r}
-# plot all time series data - PACF
-pacf(est_sa_ts, lag.max = 20, main='Estimation Set - PACF')
-pacf(est_sa_ts, lag.max = 20, plot = FALSE)
-
-pacf(pred_sa_ts, lag.max = 20, main='Prediction Set - PACF')
-pacf(pred_sa_ts, lag.max = 20, plot = FALSE)
-
-pacf(ld_est, lag.max = 20, main='Estimation Log Difference Set - PACF')
-pacf(ld_est, lag.max = 20, plot = FALSE)
-
-pacf(ld_pred, lag.max = 20, main='Prediction Log Difference Set - PACF')
-pacf(ld_pred, lag.max = 20, plot = FALSE)
-```
-
-
 
 # Apply Schemes
 
