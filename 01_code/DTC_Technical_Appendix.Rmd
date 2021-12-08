@@ -3,22 +3,97 @@ title: "DTC - Technical Appendix"
 subtitle: "OMSBA 5305, Fall Quarter 2021, Seattle University"
 author: "Group 3: Glen Lewis, Jonathan Burns, Vishaal Diwan,\nEric Beekman, and Andrew Nalundasan"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
-output: html_notebook
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: no
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 ---
 
-```{r include=FALSE}
-# Library Load
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+# load libraries
 library(tidyverse)
-library(dynlm)
+library(ggplot2)
+library(jtools)
+library(haven)
+library(tidylog)
 library(forecast)
+library(tseries)
+library(dynlm)
 library(vtable)
 library (lubridate)
 library(scales)
 library(patchwork)
 library(stats)
+options(scipen=999)
 ```
 
-```{r include=FALSE}
+# Summary
+
+This technical appendix (TA) includes the code used for Team 3's Data Translation Challenge for OMSBA 5305. It was written in an RMarkdown document to be viewed in RStudio, or to be knitted into an HTML file. Select visuals generated in this TA were used in the slidy presentation and the memo for Team 3's submittal. A table of contents is included in this HTML document for ease of navigation. Observations and comments are included after significant code chunks, which detail our analysis and guides the direction of our research. All code in this TA was written by members of Team 3, which includes Glen Lewis, Jonathan Burns, Vishaal Diwan, Eric Beekman, and Andrew Nalundasan. For additional information, see the slidy presentation and memo, both of which were submitted along with this technical appendix for DTC deliverables.  
+
+# Fetch Data
+
++ Data wrangling: 
+
+    + filter geography for 'Seattle-Tacoma-Bellevue WA'
+    + create new column for 'YearMonth' concatenating to be %Y-%m-%d format
+    + focus on Index_SA data (Seasonally Adjusted)
+    + declare as Time Series
+    
+## Read in data and wrangle
+
+```{r fetch_data}
+# read in data
+data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
+
+# filter for target GEO
+puget <- data %>% 
+  filter(GEO_Type == 'CBSA', GEO_Name == 'Seattle-Tacoma-Bellevue WA')
+
+# add YearMonth column
+puget$YearMonth <- as.Date(with(puget, paste(Year, Month, 1, sep="-")),"%Y-%m-%d")
+
+# pull columns from dataset we need for forecasting
+puget <- puget[, c('YearMonth', 'Index_SA')]
+
+# look at our data
+head(puget, 10)
+
+# declare as ts
+puget_ts <- ts(puget$Index_SA, frequency=12, start=1975)  # monthly data
+
+# logged differences
+
+# estimation and prediction ts
+# estimation set
+est_sa <- puget %>% 
+  filter(YearMonth < '2020-01-01')
+
+# estimation ts
+est_sa_ts <- ts(est_sa$Index_SA, frequency=12, start=1975)  # monthly data
+
+# prediction set
+pred_sa <- puget %>% 
+  filter(YearMonth >= '2020-01-01')
+
+# prediction ts
+pred_sa_ts <- ts(pred_sa$Index_SA, frequency=12, start=2020)  # monthly data
+
+# log difference of estimation and prediction timeseries
+ld_est <- diff(log(est_sa_ts))
+ld_pred <- diff(log(pred_sa_ts))
 
 # loads csv into a base data frame
 base_housing_data <- read_csv("../02_raw_data/fmhpi_master_file.csv")
@@ -38,7 +113,143 @@ wip_puget_precovid_data <- base_puget_precovid_data %>%
   select(YearMonth, Index_SA)
 ```
 
-```{r}
+# Data Exploration
+
+## Examine Data
+
+```{r message=FALSE, warning=FALSE}
+# plot using ggplot
+ggplot(puget, aes(YearMonth, puget_ts)) + 
+  geom_line() + scale_x_date('Year') + 
+  labs(y = "Seasonally Adjusted Index",
+       title = "Seasonally Adjusted housing index trends of:",
+       subtitle = "Seattle, Tacoma, and Bellevue, Washington") +
+  theme_classic()
+```
+
+**Comments**
++ ggplot plot looks exactly the same as using Base R but with more flexibility to add layers
+
+```{r message=FALSE, warning=FALSE}
+
+# try cleaning the data
+puget_ts <- ts(puget[, c('Index_SA')])
+puget$clean_index_sa <- tsclean(puget_ts)
+
+ggplot() + 
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_sa)) + ylab('Cleaned Index SA')
+```
+
+**Comments**
+
++ cleaning the data using tsclean() does not have an effect on our dataset
++ no outliers to clean
+
+```{r message=FALSE, warning=FALSE}
+# plot the cleaned series
+# get MA(4) - quarterly MA
+puget$sa_ma04 = ma(puget$clean_index_sa, order=4) # using the clean count with no outliers, get the MA
+
+# get MA(12) - yearly MA
+puget$sa_ma12 = ma(puget$clean_index_sa, order=12) # MA(12)
+
+ggplot() + 
+  geom_line(data = puget, aes(x = YearMonth, y = clean_index_sa, colour = "Raw Data")) +
+  geom_line(data = puget, aes(x = YearMonth, y = sa_ma04,   colour = "Quarterly Moving Average"))  +
+  geom_line(data = puget, aes(x = YearMonth, y = sa_ma12, colour = "Yearly Moving Average"))  +
+  labs(x = "Year", 
+       y = "SA Index",
+       title = "Quarterly MA vs. Yearly MA") + 
+  theme_classic()
+```
+
+**Comments**
+
++ yearly MA appears to be a slightly smoother fit to our raw data plot
++ quarterly MA follows along almost spot on
+
+## Decompose Data
+
++ Seasonality, Trend, Cycle to capture historical patterns in the series
++ Seasonality - fluctuations in the data related to calendar cycles
++ Trend - overall pattern of the series
++ Cycle - decreasing or increasing patterns that are not seasonal
+
+```{r message=FALSE, warning=FALSE}
+# Seasonality
+sa_ma <- ts(puget$Index_SA, frequency=12)
+
+decomp <- stl(sa_ma, s.window="periodic")  # additive model structure
+deseasonal_sa <- seasadj(decomp)  # remove seasonality
+plot(decomp, main="Additive model structure")
+
+```
+
+**Comments**
+
++ definitely trending upwards
+
+```{r message=FALSE, warning=FALSE}
+# run ADF test
+adf.test(sa_ma, alternative = "stationary")
+```
+
+**Comments**
+
++ dickey-fuller test indicates a very high p-value
++ do these results indicate a stationary process?
+
+```{r message=FALSE, warning=FALSE}
+# calculate differences
+count_d1 = diff(deseasonal_sa, differences = 1)
+plot(count_d1)
+adf.test(count_d1, alternative = "stationary")
+```
+
+**Comments**
+
++ dickey-fuller test indicates a high p-value
++ do these results indicate a stationary process?
+
+```{r message=FALSE, warning=FALSE}
+# plot differenced ACF 
+Acf(count_d1, main='ACF for Differenced Series')
+
+# difference PACF
+Pacf(count_d1, main='PACF for Differenced Series')
+```
+
+**Comments**
+
++ ACF:
+
+    + spikes do not pass significance threshold until lag 11
+    + distribution appears to be sinusoidal
+    
++ PACF:
+
+    + spike passes significance threshold at lag 4
+    + distribution is somewhat oscilating
+
+## Fitting an ARIMA model
+
+```{r message=FALSE, warning=FALSE}
+# Fit the ARIMA model
+auto.arima(deseasonal_sa, seasonal=FALSE)
+```
+
+**Comments**
+
++ p = 0
++ d = 2
++ q = 3
++ ARIMA Fitted Model
+    
+    + y_hat = 0.7689e_t-1 -0.2475e_t-2 - 0.4647e_t-3 + E
+
+## Stationarity 
+
+```{r message=FALSE, warning=FALSE}
 # The following code plots the data to determine stationarity 
 
 # Converts the data to 2 time series
@@ -55,11 +266,13 @@ pacf(index_sa_ts)
 
 ```
 
-## Observation(s):
+**Observation(s):**
 
 1. The plots shows that the indexes are not stationary. The following section will make the plots covariance stationary.
 
-```{r}
+## Log Difference
+
+```{r message=FALSE, warning=FALSE}
 
 # The following code log diff's the na index to make them stationary.
 log_diff_sa_ts <- diff(log(index_sa_ts))
@@ -79,25 +292,58 @@ abline(h = '.0053')
 
 ```
 
-## Observation(s): 
+**Observation(s):** 
 
 1. The log diff time series values are normally distributed with a mean of .0053 and a standard deviation of .0077.  
 The seasonally adjusted (sa) index shows a high persistence below the mean from 2008 - 2010, corresponding with the Great Recession, and then a persistence above the mean from 2011 to 2019.
 
-```{r}
+## ACF and PACF Plots
+
+```{r message=FALSE, warning=FALSE}
 # The following builds the acf and pacf plots for the stationary time series plots.
 acf(log_diff_sa_ts)
 pacf(log_diff_sa_ts, lag.max = 50)
 
 ```
 
-## Observation(s):
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4, results = 'hide'}
+ar_3_model <-  dynlm(log_diff_sa_ts ~ 
+                    stats::lag(log_diff_sa_ts, -1) +
+                    # Used stats::lag because dplyr has a lag function 
+                    # index_sa_ts is the original ts and not the log diff
+                    stats::lag(log_diff_sa_ts, -2) + 
+                    stats::lag(log_diff_sa_ts, -3), 
+                    start = c(1975, 1), end = c(2019, 12))
+
+summary(ar_3_model)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4}
+ar_3_model_resid <- resid(ar_3_model)
+
+ggAcf(ar_3_model_resid) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('ACF') +
+  labs(main = 'AR(3) Residual ACF',y = ' ') 
+
+
+ggPacf(ar_3_model_resid) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('PACF') +
+  labs(main = 'AR(3) Residuals PACF', y = ' ')
+```
+
+**Observation(s):** 
 
 1. The acf has a geometrically decaying collation indicative of a AR model. 
 2. The pacf has a significant drop off at lag 3.  
 3. There is a group of significant spikes between 1.0 and 1.5. Might consider a AR(3) model or an extreme model of AR(16).  The AR(16) will most likely be a case of over fitting.  
 
-```{r}
+## TS for Forecasting
+
+```{r message=FALSE, warning=FALSE}
 
 # The following creates the ts that will be used in the forecasting. 
 
@@ -112,7 +358,7 @@ covid_pand_housing_spec_obs <- window(puget_housing_obs_ts, start = c(2020, 1))
 # Forecast horizon will be 21 (01/2020 - 05/2021). 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #  This first model will use a Fixed Forecast Modeling method.
 
 fcast_pandemic_fixed <- numeric(21) 
@@ -150,7 +396,7 @@ lines(fcast_pandemic_fixed_ts, col = 'red')
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # This second model will use a Recursive Forecast Modeling method.
 
 fcast_pandemic_recursive <- numeric(21) 
@@ -187,7 +433,92 @@ lines(fcast_pandemic_fixed_ts, col = 'red')
 lines(fcast_pandemic_recursive_ts, col = 'green')
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
+start = 2020
+ld_puget <- diff(log(puget_ts))
+fcasts <- vector(mode = "list", length = 24L)
+for (i in 1:24) {# start recursive estimator
+  log_diff = window(ld_puget, end = c(start - 1, 11 + i))
+  #fit <- auto.arima(log_diff)
+  #force non-seaonal model
+  fit <- arima(log_diff, order = c(0,1,4))
+  #fit <- arima(log_diff, order = c(3,0,0))
+  fcasts[[i]] <- forecast(fit, h = 1)
+  
+}
+# create 12 month forecast at end of series
+fcasts[[24]] <- forecast(fit, h = 12)
+
+# create 36 month forecast based on first model month = 1
+fcasts2 <- vector(mode = "list", length = 36)
+log_diff = window(ld_puget, end=c(start-1, 12))
+#fit2 <- auto.arima(log_diff)
+fit2 <- arima(log_diff, order = c(0,1,4))
+fcasts2[[1]] <- forecast(fit2, h = 36)
+
+# create 24 month forecast based on first model month = 12
+fcasts3 <- vector(mode = "list", length = 24)
+log_diff = window(ld_puget, end=c(start, 12))
+#fit3 <- auto.arima(log_diff)
+fit3 <- arima(log_diff, order = c(0,1,4))
+fcasts3[[1]] <- forecast(fit3, h = 24)
+
+# create simple rolling 3 month avg
+a <- as.Date("2017-01-01")
+b <- as.Date("2022-01-01")
+puget %>%
+  mutate(three_avg = rollmean(Index_SA, 3,
+                              align = 'left',
+                              fill = 0)) %>%
+  ggplot(aes(x=YearMonth,
+             y=Index_SA)) +
+  geom_line(aes(color = '3 mo Avg'),
+            size = .75) +
+  geom_line(aes(y = three_avg,
+            color = 'Actuals0'),
+            size = .75) +
+  labs(title = "SA House Price Index - Puget Sound") +
+  xlim(a, b) +
+  ylim(200, 320) +
+  scale_color_manual(name = 'Series', values = c('Actuals' = 'red', '3 mo Avg' = 'blue'))
+
+```
+
+```{r message=FALSE, warning=FALSE}
+autoplot(forecast(fcasts[[1]]), xlim = c(2017, 2023)) +
+  autolayer(forecast(fcasts[[2]])) +
+  autolayer(forecast(fcasts[[3]])) +
+  autolayer(forecast(fcasts[[4]])) +
+  autolayer(forecast(fcasts[[5]])) +
+  autolayer(forecast(fcasts[[6]])) +
+  autolayer(forecast(fcasts[[7]])) +
+  autolayer(forecast(fcasts[[8]])) +
+  autolayer(forecast(fcasts[[9]])) +
+  autolayer(forecast(fcasts[[10]])) +
+  autolayer(forecast(fcasts[[11]])) +
+  autolayer(forecast(fcasts[[12]])) +
+  autolayer(forecast(fcasts[[13]])) +
+  autolayer(forecast(fcasts[[14]])) +
+  autolayer(forecast(fcasts[[15]])) +
+  autolayer(forecast(fcasts[[16]])) +
+  autolayer(forecast(fcasts[[17]])) +
+  autolayer(forecast(fcasts[[18]])) +
+  autolayer(forecast(fcasts[[19]])) +
+  autolayer(forecast(fcasts[[20]])) +
+  autolayer(forecast(fcasts[[21]])) +
+  autolayer(forecast(fcasts[[22]])) +
+  autolayer(forecast(fcasts[[23]])) +
+  autolayer(forecast(fcasts[[24]])) +
+  autolayer(ld_pred, series = "Actuals")
+
+autoplot(forecast(fcasts2[[1]]), xlim = c(2017, 2023)) +
+  autolayer(ld_pred, series = "Actuals")
+
+autoplot(forecast(fcasts3[[1]]), xlim = c(2017, 2023)) +
+  autolayer(ld_pred, series = "Actuals")
+```
+
+```{r message=FALSE, warning=FALSE}
 #  This third model will use a Rolling Forecast Modeling method.
 
 fcast_pandemic_rolling <- numeric(21) 
@@ -226,15 +557,17 @@ lines(fcast_pandemic_rolling_ts, col = 'blue')
 
 ```
 
-## Observation(s): 
+**Observation(s):** 
 
 1.  All the model forecasts are very similar for the time periods of: 
   a. First Calendar Quarter 2020, 
   b. Late Summer 2020 to early summer 2021
 2.  For those time periods where the forecasts deviate from each other, the AR(3) rolling model appears to better match actual observations than the fixed and recursive, but not by much.
-3.  There is one spot where the fix forecast model is the better predictor, in Mid_Summer 2020 but the duration is  minor and most likely is a result of randam noise.  
+3.  There is one spot where the fix forecast model is the better predictor, in Mid_Summer 2020 but the duration is  minor and most likely is a result of random noise.  
 
-```{r}
+## Test Models
+
+```{r message=FALSE, warning=FALSE}
 #  This following 3 models will use the same 3 Forecast Modeling method but use a AR(16) to investigate over-fitting. 
 
 # The hypothesis:
@@ -299,7 +632,7 @@ summary(pand_model_rolling)
 summary(pand_model_overfitting_rolling)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 a <- overfitting_rolling_res <- resid(pand_model_overfitting_rolling)
 b <- rolling_res <- resid(pand_model_rolling)
 
@@ -313,7 +646,7 @@ hist(overfitting_rolling_res)
 hist(rolling_res)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # This second model will use a Recursive Forecast Modeling method.
 
 fcast_pandemic_overfitting_recursive <- numeric(21) 
@@ -366,7 +699,7 @@ lines(fcast_pandemic_overfitting_recursive_ts, col = 'purple', lwd = 2)
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #  This first model will use a Fixed Forecast Modeling method.
 
 fcast_pandemic_overfit_fixed <- numeric(21) 
@@ -420,7 +753,7 @@ lines(fcast_pandemic_overfit_fixed_ts, col = 'purple')
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 # The folowing plots all the AR forecasts for comparision. 
 plot(covid_pand_housing_spec_obs)
@@ -439,15 +772,220 @@ lines(fcast_pandemic_overfitting_rolling_ts, col = 'purple', lwd = 2)
 
 ```
 
-## Observation(s):
+**Observation(s):** 
 
 1. The AR(3) and AR(16) forecasts are very similar during the first half of 2020. Like all the models, the forecasts for the first half of 2020 lag the actual market behavior by about 30-45 days.
 2.  The forecasts become more accurate during the second half of 2020. 
 3. Based on the plots, after mid-2020, the AR(16) model becomes the better predictor of market behavior.
 
-## Conclusion(s): 
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=4}
+ar_16_model <- dynlm(log_diff_sa_ts ~
+                            stats::lag(log_diff_sa_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(log_diff_sa_ts, -2) + 
+                            stats::lag(log_diff_sa_ts, -3) +
+                            stats::lag(log_diff_sa_ts, -11) +
+                            stats::lag(log_diff_sa_ts, -12) + 
+                            stats::lag(log_diff_sa_ts, -13) + 
+                            stats::lag(log_diff_sa_ts, -14) + 
+                            stats::lag(log_diff_sa_ts, -15) + 
+                            stats::lag(log_diff_sa_ts, -16),
+                            start = c(1975, 1), end = c(2019, 12))
+
+ar_16_model_resid <- resid(ar_16_model)
+
+ggAcf(ar_16_model_resid) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('ACF') +
+  labs(main = 'AR(3) Residual ACF',y = ' ') 
+
+
+ggPacf(ar_16_model_resid) +
+  ylim(c(-.5, 1)) +
+  theme_classic() + 
+  ggtitle('PACF') +
+  labs(main = 'AR(3) Residuals PACF', y = ' ')
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wip_puget_housing_obs <- filter(base_housing_data, GEO_Name == 
+                            'Seattle-Tacoma-Bellevue WA') %>%  
+                            select(Year, Month, Index_SA)
+
+prediction_sample_ts <- ts(wip_puget_housing_obs$Index_SA, frequency = 12, start = c(1975, 1))
+
+log_diff_prediction_ts <- diff(log(prediction_sample_ts))
+
+covid_pand_housing_prediction_sample <- window(log_diff_prediction_ts, start = c(2020, 1))
+
+#  This following 3 models will use the same 3 Forecast Modeling method but use a AR(16) to investigate over-fitting. 
+
+fcast_pandemic_rolling <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_rolling <- dynlm(log_diff_sa_ts ~
+                            stats::lag(log_diff_sa_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(log_diff_sa_ts, -2) + 
+                            stats::lag(log_diff_sa_ts, -3) +
+                            stats::lag(log_diff_sa_ts, -11) +
+                            stats::lag(log_diff_sa_ts, -12) + 
+                            stats::lag(log_diff_sa_ts, -13) + 
+                            stats::lag(log_diff_sa_ts, -14) + 
+                            stats::lag(log_diff_sa_ts, -15) + 
+                            stats::lag(log_diff_sa_ts, -16),
+                            start = c(1975, 1 + i), end = c(2019, 11 + i))
+                        # There are 539 log/diff observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_rolling[i] <- coef(pand_model_rolling)[1] +
+                            coef(pand_model_rolling)[2] *   
+                            log_diff_prediction_ts[538 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_rolling)[3] * log_diff_prediction_ts[537 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_rolling)[4] * log_diff_prediction_ts[536 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_rolling)[5] * log_diff_prediction_ts[528 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_rolling)[6] * log_diff_prediction_ts[527 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_rolling)[7] * log_diff_prediction_ts[526 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_rolling)[8] * log_diff_prediction_ts[525 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_rolling)[9] * log_diff_prediction_ts[524 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_rolling)[10] * log_diff_prediction_ts[523 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_rolling_ts <- ts(fcast_pandemic_rolling, frequency = 12, start = c(2020, 1))
+
+# This second model will use a Recursive Forecast Modeling method.
+
+fcast_pandemic_recursive <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+for (i in 1:21) {
+  pand_model_recursive <- dynlm(log_diff_sa_ts ~
+                            stats::lag(log_diff_sa_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(log_diff_sa_ts, -2) + 
+                            stats::lag(log_diff_sa_ts, -3) +
+                            stats::lag(log_diff_sa_ts, -11) +
+                            stats::lag(log_diff_sa_ts, -12) + 
+                            stats::lag(log_diff_sa_ts, -13) + 
+                            stats::lag(log_diff_sa_ts, -14) + 
+                            stats::lag(log_diff_sa_ts, -15) + 
+                            stats::lag(log_diff_sa_ts, -16), 
+                            start = c(1975, 1), end = c(2019, 11 + i))
+                        # There are 540 observations from 01/1975 to 12/2019
+  
+  fcast_pandemic_recursive[i] <- coef(pand_model_recursive)[1] +
+                            coef(pand_model_recursive)[2] *   
+                            log_diff_prediction_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_recursive)[3] * log_diff_prediction_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_recursive)[4] * log_diff_prediction_ts[537 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_recursive)[5] * log_diff_prediction_ts[529 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_recursive)[6] * log_diff_prediction_ts[528 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_recursive)[7] * log_diff_prediction_ts[527 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_recursive)[8] * log_diff_prediction_ts[526 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_recursive)[9] * log_diff_prediction_ts[525 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_recursive)[10] * log_diff_prediction_ts[524 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_recursive_ts <- ts(fcast_pandemic_recursive, frequency = 12, start = c(2020, 1))
+
+fcast_pandemic_fixed <- numeric(21) 
+# Produces a list of 21 zeros. That is the count of observations from 01/2020 - 05/2020
+
+pand_model_fixed <- dynlm(log_diff_sa_ts ~
+                            stats::lag(log_diff_sa_ts, -1) +
+                        # Used stats::lag because dplyr has a lag function 
+                        # index_sa_ts is the original ts and not the log diff
+                            stats::lag(log_diff_sa_ts, -2) + 
+                            stats::lag(log_diff_sa_ts, -3) +
+                            stats::lag(log_diff_sa_ts, -11) +
+                            stats::lag(log_diff_sa_ts, -12) + 
+                            stats::lag(log_diff_sa_ts, -13) + 
+                            stats::lag(log_diff_sa_ts, -14) + 
+                            stats::lag(log_diff_sa_ts, -15) + 
+                            stats::lag(log_diff_sa_ts, -16), 
+                            start = c(1975, 1), end = c(2019, 12))
+                        # The model will use only the observations from 01/1975 to 12/2019 
+  
+
+for (i in 1:21) {
+  fcast_pandemic_fixed[i] <- coef(pand_model_fixed)[1] +
+                            coef(pand_model_fixed)[2] *   
+                            log_diff_prediction_ts[539 + i] +
+                        # coef 1 & 2 = Intercept and B1 (lag 1)
+                            coef(pand_model_fixed)[3] * log_diff_prediction_ts[538 + i] +
+                        # coef 3 = B2 (lag 2)
+                            coef(pand_model_fixed)[4] * log_diff_prediction_ts[537 + i] +
+                        # coef 4 = B3 (lag 3)
+                            coef(pand_model_fixed)[5] * log_diff_prediction_ts[529 + i] +
+                        # coef 5 = B4 (lag 11)
+                            coef(pand_model_fixed)[6] * log_diff_prediction_ts[528 + i] +
+                        # coef 6 = B5 (lag 12)
+                            coef(pand_model_fixed)[7] * log_diff_prediction_ts[527 + i] +
+                        # coef 7 = B6 (lag 13)
+                            coef(pand_model_fixed)[8] * log_diff_prediction_ts[526 + i] + 
+                        # coef 8 = B7 (lag 14)
+                            coef(pand_model_fixed)[9] * log_diff_prediction_ts[525 + i] +
+                        # coef 9 = B8 (lag 15)
+                            coef(pand_model_fixed)[10] * log_diff_prediction_ts[524 + i]
+                        # coef 10 = B9 (lag 16)
+}
+
+fcast_pandemic_fixed_ts <- ts(fcast_pandemic_fixed, frequency = 12, start = c(2020, 1))
+
+# The following creates the ts that will be used in the prediction sample. 
+# Forecast horizon will be 21 (01/2020 - 05/2021). 
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=5, fig.width=6}
+
+plot(covid_pand_housing_prediction_sample, main = "Fix/Recursive and Rolling Forecast v. 2020/21 Actual Index", xlab = "Years", ylab = "Index", ylim = c(-.010, .025))
+legend("bottomright", legend = c('2020/20201 Observed', 'Recursive', 'Rolling'), 
+      lty=c(1,1,1), col = c('Black', 'Orange', 'Green'))
+lines(fcast_pandemic_fixed_ts, col = 'green', lwd = 2)
+lines(fcast_pandemic_recursive_ts, col = 'brown',lwd =1)
+lines(fcast_pandemic_rolling_ts, col = 'orange', lwd = 2)
+
+```
+
+- Rolling Scheme
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+kbl(accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)) %>%   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+- Recursive Scheme
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+kbl(accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+# Conclusion(s): 
 
 The AR(3) and AR(16) forecasts are very similar during the first half of 2020. Like all the models, the forecasts for the first half of 2020 lag the actual market behavior by about 30-45 days. We also note that the forecasts become more accurate during the second half of 2020. Based on the plots, after mid-2020, the AR(16) model becomes the better predictor of market behavior. Both models are statistically significant models, but the AR(16) model better captures the volatility of the housing prices in Puget Sound during the pandemic. It was found that the Recursive scheme is more representative than the Fixed and Rolling schemes. 
 
 The traditional convention is to choose a simpler model (ie AR(3) in this scenario) because a simpler model is more likely to reflect the behaviors of a population when you build that model on observations of a sample group. A lower process number allows for randomness to exist in the model, which is realistic. However, the AR(16) model runs counter to this precept. It appears that the AR(16) model is a better predictor of overall market behavior from mid-2020 because lags 11-16 occurred during a time (2018) when the market index behaved in a fashion similar to the mid-2020 to 2021 growth behavior. The behavior seen in lags 11-16 better mirrors the 2020-2021 behavior than the simpler AR(3) model, whose growth during the last 3 months of 2019 was significantly lower than previous lags. Including these additional lags refined the model by including the type of index behavior one could expect during a "hot" market time frame that is not captured in the simpler, short term, AR(3) model.
+
+
+
+
 

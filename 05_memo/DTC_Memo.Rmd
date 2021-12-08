@@ -131,7 +131,7 @@ The Root Mean Squared Error (RMSE) and Mean Absolute Error (MAE) were calculated
 
 Due to the lower error rates in both the RMSE and MAE, it was assessed that using the Recursive scheme using the AR(16) model would be our best model for forecasting into the future. 
 
-We then plotted how the confidence intervals of our AR(3) model forecasts fit over the actual pricing index from 2020 to present so that we could make comparisons between our estimation sample and our prediction sample. The confidence intervals were plotted by using the Recursive forecasting scheme. The distribution of spikes suggest a cyclical pattern during the pandemic related pricing. The actuals end up being more likely to be outside of the forecasted values. Given the calculated accuracy of our models as depicted through the R^2^, RMSE, and MAE values provided above, these forecasts still appear to be struggling due to the forces of an ongoing global pandemic. 
+We then plotted how the confidence intervals of our AR(3) model forecasts fit over the actual pricing index from 2020 to present so that we could make comparisons between our estimation sample and our prediction sample. The confidence intervals were plotted by using the Recursive forecasting scheme. The distribution of spikes suggest a cyclical pattern during the pandemic related pricing, with decreased accuracy at the inflection points of the log/diff series. Given the calculated accuracy of our models as depicted through the R^2^, RMSE, and MAE values provided above, these forecasts are still representative, even though they struggled to forecast rapid market changes from April 2020 through July 2020. 
 
 <br> 
 
