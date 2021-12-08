@@ -7,11 +7,10 @@ output:
 ---
 
  
-<<<<<<< HEAD
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-=======
+
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 library(tidyverse) # For transforming and tidying the data
 library(dynlm) # For time series/dynamic regression models
 library(forecast) # For ACF/PACF and ggACF/ggPACF
@@ -60,10 +59,10 @@ Introduction
 
 - How did the pandemic impact the behavior of the housing price index and what is the appropriate scheme (fixed, recursive, or rolling) that will help us best forecast the housing price index values after the pandemic?
 
-<<<<<<< HEAD
+
 
 =======
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 </div>
 <div style="float: right; width: 50%;">
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
@@ -72,10 +71,10 @@ plot(index_sa_ts, main = 'Freddie Mac Seasonally Adjusted Housing Price Index
      2011 - 2019 ', ylab = 'Housing Index', xlab = 'Year', col = 'blue')
 ```
 </div>
-<<<<<<< HEAD
+
 
 =======
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 
 Data Description
 =========================================
@@ -94,7 +93,7 @@ Housing Data
 <<<<<<< HEAD
 
 =======
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 - Initial Index Data not Stationary 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, fig.height=5, fig.width=6}
 
@@ -240,7 +239,7 @@ ggPacf(ar_16_model_resid) +
 
 </div>
 
-<<<<<<< HEAD
+
 Stationary Data
 =========================================
 - We applied the log difference 
@@ -271,7 +270,7 @@ PACF & Dickey-Fuller
 Models
 =======
 Forecasting Models
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 =========================================
 <div style="float: left; width: 50%;">
 
@@ -452,7 +451,7 @@ kbl(accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)) %
 kbl(accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-<<<<<<< HEAD
+
 
 =======
 - PACF has a significant drop off at lag 3 we decided to use an AR(3) model
@@ -477,7 +476,7 @@ Forecasts
 =======
 ![](../03_visuals/AR(3) Recursive Scheme.png){width=700px height=432px}
 
->>>>>>> 2be6ed1c958572152456cd339269d9f7ad388e6d
+
 
 </div>
 
