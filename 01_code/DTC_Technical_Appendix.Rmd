@@ -979,7 +979,7 @@ kbl(accuracy(fcast_pandemic_rolling_ts, covid_pand_housing_prediction_sample)) %
 kbl(accuracy(fcast_pandemic_recursive_ts, covid_pand_housing_prediction_sample)) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-# Conclusion(s): 
+# Conclusions
 
 The AR(3) and AR(16) forecasts are very similar during the first half of 2020. Like all the models, the forecasts for the first half of 2020 lag the actual market behavior by about 30-45 days. We also note that the forecasts become more accurate during the second half of 2020. Based on the plots, after mid-2020, the AR(16) model becomes the better predictor of market behavior. Both models are statistically significant models, but the AR(16) model better captures the volatility of the housing prices in Puget Sound during the pandemic. It was found that the Recursive scheme is more representative than the Fixed and Rolling schemes. 
 
