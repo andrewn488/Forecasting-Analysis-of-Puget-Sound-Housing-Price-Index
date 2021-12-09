@@ -150,3 +150,15 @@ The AR(3) and AR(16) forecasts are very similar during the first half of 2020. L
 The traditional convention is to choose a simpler model (ie AR(3) in this scenario) because a simpler model is more likely to reflect the behaviors of a population when you build that model on observations of a sample group. A lower process number allows for randomness to exist in the model, which is realistic. However, the AR(16) model runs counter to this precept. It appears that the AR(16) model is a better predictor of overall market behavior from mid-2020 because lags 11-16 occurred during a time (2018) when the market index behaved in a fashion similar to the mid-2020 to 2021 growth behavior. The behavior seen in lags 11-16 better mirrors the 2020-2021 behavior than the simpler AR(3) model, whose growth during the last 3 months of 2019 was significantly lower than previous lags. Including these additional lags refined the model by including the type of index behavior one could expect during a “hot” market time frame that is not captured in the simpler, short term, AR(3) model.
 
 There are many opportunities for future research on this topic. An investigation on deterministic trends in the data could be performed to assess the level randomness of the Freddie Mac data set during the pandemic. Also, a reassessment of the models described in this research could be performed in the near future to validate our findings and to also assess the effects of ongoing changes regarding the pandemic, such as the mutation of the delta and omicron variants and the constant shifting of guidance provided by the CDC and WHO.
+
+# Contributions
+
++ Glen Lewis - focused on R code in technical appendix for model selection and forecast models. Helped with interpretation of summary statistics and Dickey-Fuller Test. Helped manage the slidy presentation with Eric
+
++ Jonathan Burns - focused on R code in technical appendix for Fixed, Rolling, and Recursive forecasting schemes, helped with statistical interpretations, helped format slidy presentation, recorded and submitted final video presentation
+
++ Eric Beekman - managed slidy presentation, helped write memo, and helped with debugging of code 
+
++ Vishaal Diwan - helped with debugging of code, data wrangling, statistical interpretations, helped with proofreading and writing memo
+
++ Andrew Nalundasan - wrote memo, set team meetings internally and with Professor Xie, took notes during team meetings, recorded and submitted draft video, wrote code in technical appendix, consolidated technical appendix across whole team  
