@@ -3,7 +3,7 @@
 Collaboration with Eric Beekman, Jonathan Burns, Vishaal Diwan, Glen Lewis, and Andrew Nalundasan
 
 **Purpose:**
-\nIn the Puget Sound region, housing price growth has exploded in recent months and house prices in general have increased from 1975 to present. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. Our team investigated how house prices have changed in the last 45 years and compared price changes between pre-COVID-19 pandemic to post-COVID-19 pandemic time frames.
+In the Puget Sound region, housing price growth has exploded in recent months and house prices in general have increased from 1975 to present. It has become vital to lenders, individuals, and government officials to monitor changes in house prices over time to appropriately plan for home ownership and changes in housing affordability at scale. Our team investigated how house prices have changed in the last 45 years and compared price changes between pre-COVID-19 pandemic to post-COVID-19 pandemic time frames.
 
 **Research Question:**
 How did the COVID-19 pandemic (“the pandemic”) impact the behavior of the housing price index and what is the appropriate forecasting scheme (Fixed, Recursive, or Rolling) that will help us best forecast the housing price index values after the pandemic?
